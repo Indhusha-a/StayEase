@@ -1,0 +1,42 @@
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env*.local
+
+# Backend uploads (user-uploaded files)
+backend/uploads/
+
+# Expo / React Native
+stayease-frontend/.expo/
+stayease-frontend/dist/
+stayease-frontend/web-build/
+stayease-frontend/expo-env.d.ts
+stayease-frontend/.kotlin/
+stayease-frontend/*.orig.*
+stayease-frontend/*.jks
+stayease-frontend/*.p8
+stayease-frontend/*.p12
+stayease-frontend/*.key
+stayease-frontend/*.mobileprovision
+stayease-frontend/.metro-health-check*
+
+# Debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Generated native folders
+stayease-frontend/ios/
+stayease-frontend/android/
+
+# VS Code
+.vscode/
