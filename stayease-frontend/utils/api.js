@@ -1,12 +1,20 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Root server address — update this if your local IP changes or when deploying to Render
-export const SERVER_URL = 'http://192.168.1.3:5000';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const SERVER_URL = API_URL.replace(/\/api$/, '');
 
-// Axios instance pointing to the API — all screens import this for data calls
 const api = axios.create({
-  baseURL: `${SERVER_URL}/api`,
+  baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 10000, // fail fast — don't hang forever
+});
+
+// Attach token on every request without each screen touching AsyncStorage
+api.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
 export default api;
