@@ -1,36 +1,43 @@
 const jwt = require('jsonwebtoken');
 const User = require('../modules/auth/userModel');
 
-// Protect — checks if user is logged in
-const protect = async (req, res, next) => {
-  let token;
+// Simple in-process cache: token → user, expires after 5 min
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000;
 
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select('-password');
-      next();
-    } catch (error) {
-      return res.status(401).json({ message: 'Not authorized, token failed' });
-    }
+const protect = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
 
-  if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
+  const token = authHeader.split(' ')[1];
+
+  try {
+    // Check cache first — no DB round-trip on cached tokens
+    const cached = cache.get(token);
+    if (cached && Date.now() < cached.exp) {
+      req.user = cached.user;
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password').lean(); // .lean() = plain JS obj, faster
+    if (!user) return res.status(401).json({ message: 'User not found' });
+
+    cache.set(token, { user, exp: Date.now() + CACHE_TTL });
+    req.user = user;
+    next();
+  } catch {
+    return res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };
 
-// authorizeRoles — checks if the user has the right role
-const authorizeRoles = (...roles) => {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        message: `Access denied. Required role: ${roles.join(' or ')}`,
-      });
-    }
-    next();
-  };
+const authorizeRoles = (...roles) => (req, res, next) => {
+  if (!roles.includes(req.user.role)) {
+    return res.status(403).json({ message: `Access denied. Required: ${roles.join(' or ')}` });
+  }
+  next();
 };
 
 module.exports = { protect, authorizeRoles };
