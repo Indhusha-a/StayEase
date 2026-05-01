@@ -96,7 +96,7 @@ function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarShowLabel: false,
+        tabBarShowLabel: false, // We use custom labels inside TabIcon
         tabBarStyle: {
           backgroundColor: '#fff',
           borderTopColor: '#E5E7EB',
@@ -158,6 +158,7 @@ function MainTabs() {
 function RootNavigator() {
   const { user, loading } = useAuth();
 
+  // Show spinner while checking stored token
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EFF6FF' }}>
