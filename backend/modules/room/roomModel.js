@@ -9,6 +9,13 @@ const roomSchema = new mongoose.Schema({
   description:        { type: String, default: '' },
   amenities:          { type: [String], default: [] },
   thumbnailImage:     { type: String, default: '' },
+  bookedDates: [{
+    checkIn: Date,
+    checkOut: Date,
+    bookingId:        {type: mongoose.Schema.Types.ObjectId, ref: 'Booking'}
+  }],
+  createdAt: {type: Date, default: Date.now},
+  updatedAt: {type: Date, default: Date.now},
   availabilityStatus: { type: String, enum: ['available','booked','maintenance'], default: 'available' },
   floor:              { type: Number, default: 1 },
 }, { timestamps: true });
