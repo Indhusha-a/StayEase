@@ -6,6 +6,7 @@ import { ActivityIndicator, View, Text, TouchableOpacity } from 'react-native';
 
 // Import screens
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { BookingProvider } from './context/BookingContext';
 import IndexScreen    from './screens/home/IndexScreen';
 import LoginScreen    from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
@@ -13,6 +14,9 @@ import RoomListScreen   from './screens/rooms/RoomListScreen';
 import RoomDetailScreen from './screens/rooms/RoomDetailScreen';
 import AddRoomScreen    from './screens/rooms/AddRoomScreen';
 import EditRoomScreen   from './screens/rooms/EditRoomScreen';
+import BookingListScreen from './screens/bookings/BookingListScreen';
+import BookingDetailScreen from './screens/bookings/BookingDetailScreen';
+import CreateBookingScreen from './screens/bookings/CreateBookingScreen';
 
 // ── Placeholder screens — each member replaces with their real screens ──
 const Placeholder = ({ name, icon }) => (
@@ -35,10 +39,21 @@ function RoomsScreen() {
     </RoomStack.Navigator>
   );
 }
+const BookingStack = createStackNavigator();
+
+function BookingsStackNav() {
+  return (
+    <BookingStack.Navigator screenOptions={{ headerShown: false }}>
+      <BookingStack.Screen name="BookingList" component={BookingListScreen} />
+      <BookingStack.Screen name="BookingDetail" component={BookingDetailScreen} />
+      <BookingStack.Screen name="CreateBooking" component={CreateBookingScreen} />
+    </BookingStack.Navigator>
+  );
+}
 
 
 // Each member imports and replaces their screen here
-const BookingsScreen   = () => <Placeholder name="Bookings"   icon="📅" />;
+const BookingsScreen = () => <BookingsStackNav />;
 const ReviewsScreen    = () => <Placeholder name="Reviews"    icon="⭐" />;
 const PaymentsScreen   = () => <Placeholder name="Payments"   icon="💳" />;
 const StaffScreen      = () => <Placeholder name="Staff"      icon="👥" />;
@@ -155,9 +170,11 @@ function RootNavigator() {
 export default function App() {
   return (
     <AuthProvider>
+      <BookingProvider>
       <NavigationContainer>
         <RootNavigator />
       </NavigationContainer>
+      </BookingProvider>
     </AuthProvider>
   );
 }
