@@ -17,6 +17,10 @@ import MyPaymentsScreen from './screens/payments/MyPaymentsScreen';
 import PaymentReceiptScreen from './screens/payments/PaymentReceiptScreen';
 import AdminAllPaymentsScreen from './screens/payments/AdminAllPaymentsScreen';
 import RevenueSummaryScreen from './screens/payments/RevenueSummaryScreen';
+import MyReviewsScreen from './screens/reviews/MyReviewsScreen';
+import SubmitReviewScreen from './screens/reviews/SubmitReviewScreen';
+import EditReviewScreen from './screens/reviews/EditReviewScreen';
+import AdminAllReviewsScreen from './screens/reviews/AdminAllReviewsScreen';
 
 const Placeholder = ({ name, icon }) => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EFF6FF' }}>
@@ -26,8 +30,10 @@ const Placeholder = ({ name, icon }) => (
   </View>
 );
 
+// ── Room Stack ──
 const RoomStack = createStackNavigator();
 const PaymentStack = createStackNavigator();
+const ReviewStack = createStackNavigator();
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -59,10 +65,25 @@ function PaymentsStackScreen() {
   );
 }
 
-const BookingsScreen = () => <Placeholder name="Bookings" icon="??" />;
-const ReviewsScreen = () => <Placeholder name="Reviews" icon="?" />;
-const StaffScreen = () => <Placeholder name="Staff" icon="??" />;
-const ComplaintsScreen = () => <Placeholder name="Complaints" icon="??" />;
+function ReviewsScreen() {
+  const { user } = useAuth();
+  return (
+    <ReviewStack.Navigator screenOptions={{ headerShown: false }}>
+      {user?.role === 'admin' ? (
+        <ReviewStack.Screen name="AdminAllReviews" component={AdminAllReviewsScreen} />
+      ) : (
+        <ReviewStack.Screen name="MyReviews" component={MyReviewsScreen} />
+      )}
+      <ReviewStack.Screen name="SubmitReview"    component={SubmitReviewScreen} />
+      <ReviewStack.Screen name="EditReview"      component={EditReviewScreen} />
+      
+    </ReviewStack.Navigator>
+  );
+}
+const BookingsScreen = () => <Placeholder name="Bookings" icon="📅" />;
+
+const StaffScreen = () => <Placeholder name="Staff" icon="👥" />;
+const ComplaintsScreen = () => <Placeholder name="Complaints" icon="🔧" />;
 
 const TabIcon = ({ emoji, label, focused }) => (
   <View style={{ alignItems: 'center' }}>
