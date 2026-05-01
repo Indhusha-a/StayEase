@@ -13,6 +13,10 @@ import RoomListScreen   from './screens/rooms/RoomListScreen';
 import RoomDetailScreen from './screens/rooms/RoomDetailScreen';
 import AddRoomScreen    from './screens/rooms/AddRoomScreen';
 import EditRoomScreen   from './screens/rooms/EditRoomScreen';
+import MyReviewsScreen       from './screens/reviews/MyReviewsScreen';
+import SubmitReviewScreen    from './screens/reviews/SubmitReviewScreen';
+import EditReviewScreen      from './screens/reviews/EditReviewScreen';
+import AdminAllReviewsScreen from './screens/reviews/AdminAllReviewsScreen';
 
 // ── Placeholder screens — each member replaces with their real screens ──
 const Placeholder = ({ name, icon }) => (
@@ -23,8 +27,8 @@ const Placeholder = ({ name, icon }) => (
   </View>
 );
 
+// ── Room Stack ──
 const RoomStack = createStackNavigator();
-
 function RoomsScreen() {
   return (
     <RoomStack.Navigator screenOptions={{ headerShown: false }}>
@@ -36,10 +40,26 @@ function RoomsScreen() {
   );
 }
 
+// ── Review Stack ──
+const ReviewStack = createStackNavigator();
+function ReviewsScreen() {
+  const { user } = useAuth();
+  return (
+    <ReviewStack.Navigator screenOptions={{ headerShown: false }}>
+      {user?.role === 'admin' ? (
+        <ReviewStack.Screen name="AdminAllReviews" component={AdminAllReviewsScreen} />
+      ) : (
+        <ReviewStack.Screen name="MyReviews" component={MyReviewsScreen} />
+      )}
+      <ReviewStack.Screen name="SubmitReview"    component={SubmitReviewScreen} />
+      <ReviewStack.Screen name="EditReview"      component={EditReviewScreen} />
+      <ReviewStack.Screen name="AdminAllReviews" component={AdminAllReviewsScreen} />
+    </ReviewStack.Navigator>
+  );
+}
 
 // Each member imports and replaces their screen here
 const BookingsScreen   = () => <Placeholder name="Bookings"   icon="📅" />;
-const ReviewsScreen    = () => <Placeholder name="Reviews"    icon="⭐" />;
 const PaymentsScreen   = () => <Placeholder name="Payments"   icon="💳" />;
 const StaffScreen      = () => <Placeholder name="Staff"      icon="👥" />;
 const ComplaintsScreen = () => <Placeholder name="Complaints" icon="🔧" />;
@@ -75,7 +95,7 @@ function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarShowLabel: false,   // We use custom labels inside TabIcon
+        tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: '#fff',
           borderTopColor: '#E5E7EB',
@@ -137,7 +157,6 @@ function MainTabs() {
 function RootNavigator() {
   const { user, loading } = useAuth();
 
-  // Show spinner while checking stored token
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EFF6FF' }}>
