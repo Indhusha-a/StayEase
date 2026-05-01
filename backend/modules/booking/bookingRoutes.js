@@ -1,7 +1,21 @@
 const express = require('express');
 const router = express.Router();
+const {
+  createBooking,
+  getAllBookings,
+  getMyBookings,
+  getBookingById,
+  updateBookingStatus,
+  cancelBooking
+} = require('./bookingController');
+const { protect, authorizeRoles } = require('../../middleware/authMiddleware');
 
-// Placeholder — Member 1 will replace this with full routes
-router.get('/', (req, res) => res.json({ message: 'Booking routes coming soon' }));
+router.get('/my', protect, getMyBookings);
+router.put('/:id/cancel', protect, cancelBooking);
+router.put('/:id/status', protect, authorizeRoles('admin'), updateBookingStatus);
+router.get('/:id', protect, getBookingById);
+
+router.post('/', protect, createBooking);
+router.get('/', protect, authorizeRoles('admin'), getAllBookings);
 
 module.exports = router;

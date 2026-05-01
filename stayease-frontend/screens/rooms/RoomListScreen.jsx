@@ -93,8 +93,14 @@ export default function RoomListScreen({ navigation }) {
 
   useEffect(() => {
     fetchRooms();
+
+    const unsubscribe = navigation.addListener('focus', () => {
+    fetchRooms();
+  });
+
     Animated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-  }, []);
+   return unsubscribe;
+  }, [navigation]);
 
   const fetchRooms = async () => {
     try {
