@@ -60,7 +60,7 @@ function ReviewsScreen() {
 
 // Each member imports and replaces their screen here
 const BookingsScreen   = () => <Placeholder name="Bookings"   icon="📅" />;
-const ReviewsScreen = () => <Placeholder name="Reviews"       icon="⭐" />;
+
 const PaymentsScreen   = () => <Placeholder name="Payments"   icon="💳" />;
 const StaffScreen      = () => <Placeholder name="Staff"      icon="👥" />;
 const ComplaintsScreen = () => <Placeholder name="Complaints" icon="🔧" />;
