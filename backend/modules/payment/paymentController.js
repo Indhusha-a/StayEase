@@ -1,20 +1,6 @@
 const PaymentService = require('./paymentService');
 
-// ---------------------------------------------------------------------------
-// Each controller method is a thin HTTP adapter:
-//   1. Extract what the service needs from req
-//   2. Call the service
-//   3. Map the result (or error) to an HTTP response
-//
-// Business logic lives entirely in paymentService.js — controllers should
-// not duplicate validation or database access.
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// @desc    Create a new payment for an approved booking
-// @route   POST /api/payments
-// @access  Private — Guest only
-// ---------------------------------------------------------------------------
+// Create a payment for an approved booking.
 const createPayment = async (req, res) => {
   try {
     const { bookingId, amount, paymentMethod, transactionReference, notes } = req.body;
@@ -25,7 +11,7 @@ const createPayment = async (req, res) => {
       paymentMethod,
       transactionReference,
       notes,
-      userId: req.user._id  // Injected by auth middleware; never trust the request body
+      userId: req.user._id
     });
 
     return res.status(201).json(payment);
@@ -35,11 +21,7 @@ const createPayment = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Get all payments across all users
-// @route   GET /api/payments
-// @access  Private — Admin only
-// ---------------------------------------------------------------------------
+// Get all payments for admins.
 const getAllPayments = async (_req, res) => {
   try {
     const payments = await PaymentService.getAllPayments();
@@ -51,11 +33,7 @@ const getAllPayments = async (_req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Get all payments belonging to the logged-in guest
-// @route   GET /api/payments/my
-// @access  Private — Guest only
-// ---------------------------------------------------------------------------
+// Get payments for the logged-in user.
 const getMyPayments = async (req, res) => {
   try {
     const payments = await PaymentService.getMyPayments(req.user._id);
@@ -67,11 +45,7 @@ const getMyPayments = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Get a single payment by ID
-// @route   GET /api/payments/:id
-// @access  Private — Owner or Admin
-// ---------------------------------------------------------------------------
+// Get one payment by ID.
 const getPaymentById = async (req, res) => {
   try {
     const payment = await PaymentService.getPaymentById({
@@ -87,11 +61,7 @@ const getPaymentById = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Update a payment's status to Paid or Refunded
-// @route   PUT /api/payments/:id/status
-// @access  Private — Admin only
-// ---------------------------------------------------------------------------
+// Update a payment status.
 const updatePaymentStatus = async (req, res) => {
   try {
     const payment = await PaymentService.updatePaymentStatus({
@@ -106,11 +76,7 @@ const updatePaymentStatus = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Get revenue summary grouped by payment status
-// @route   GET /api/payments/stats
-// @access  Private — Admin only
-// ---------------------------------------------------------------------------
+// Get payment summary stats.
 const getPaymentStats = async (_req, res) => {
   try {
     const summary = await PaymentService.getPaymentStats();
