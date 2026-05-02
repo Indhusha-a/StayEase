@@ -56,6 +56,11 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
   const canDelete = isPaid || isRefunded;
   const hasSlip = Boolean(item.slipUrl);
   const amountColor = isRefunded ? ON_VARIANT : PRIMARY;
+  const paidLabel = smallPhone ? 'Paid' : 'Mark as Paid';
+  const refundedLabel = smallPhone ? 'Refund' : 'Mark as Refunded';
+  const slipLabel = smallPhone ? 'Slip' : 'View Slip';
+  const deleteLabel = smallPhone ? 'Delete' : 'Delete Payment';
+  const noSlipLabel = smallPhone ? 'No Slip' : 'No Slip';
 
   const formattedDate = item.paymentDate
     ? `${new Date(item.paymentDate).toLocaleDateString('en-US', {
@@ -69,7 +74,7 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
     : '-';
 
   return (
-    <View style={s.card}>
+    <View style={[s.card, compact && s.cardCompact, smallPhone && s.cardSmall]}>
       <View style={[s.cardTop, compact && s.cardTopCompact]}>
         <View style={[s.cardLeft, compact && s.cardLeftCompact]}>
           <PersonIcon />
@@ -80,21 +85,23 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
             <Text style={s.cardEmail} numberOfLines={1}>
               {item.userId?.email || ''}
             </Text>
-            <View style={s.badgeRow}>
+            <View style={[s.badgeRow, compact && s.badgeRowCompact]}>
               <StatusBadge status={item.status} />
-              <Text style={s.txId}>ID: #{item._id?.slice(-6).toUpperCase() || 'N/A'}</Text>
+              <Text style={[s.txId, compact && s.txIdCompact]}>ID: #{item._id?.slice(-6).toUpperCase() || 'N/A'}</Text>
             </View>
           </View>
         </View>
 
         <View style={[s.cardRight, compact && s.cardRightCompact, smallPhone && s.cardRightSmall]}>
-          <Text style={[s.amount, compact && s.amountCompact, { color: amountColor }]}>${Number(item.amount || 0).toFixed(2)}</Text>
-          <Text style={[s.dateText, compact && s.dateTextCompact]}>{formattedDate}</Text>
+          <View style={[s.amountBlock, compact && s.amountBlockCompact]}>
+            <Text style={[s.amount, compact && s.amountCompact, { color: amountColor }]}>${Number(item.amount || 0).toFixed(2)}</Text>
+            <Text style={[s.dateText, compact && s.dateTextCompact]}>{formattedDate}</Text>
+          </View>
 
           <View style={[s.actionsRow, compact && s.actionsRowCompact, smallPhone && s.actionsRowSmall]}>
             {isPaid ? (
               <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact, smallPhone && s.actionBtnSmall]}>
-                <Text style={s.actionDisabledText}>Mark as Paid</Text>
+                <Text style={s.actionDisabledText}>{paidLabel}</Text>
               </View>
             ) : (
               <TouchableOpacity
@@ -108,13 +115,13 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
                 onPress={() => onUpdateStatus(item._id, 'Paid')}
                 activeOpacity={0.85}
               >
-                <Text style={s.actionPaidText}>Mark as Paid</Text>
+                <Text style={s.actionPaidText}>{paidLabel}</Text>
               </TouchableOpacity>
             )}
 
             {isRefunded ? (
               <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact, smallPhone && s.actionBtnSmall]}>
-                <Text style={s.actionDisabledText}>Mark as Refunded</Text>
+                <Text style={s.actionDisabledText}>{refundedLabel}</Text>
               </View>
             ) : (
               <TouchableOpacity
@@ -128,7 +135,7 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
                 onPress={() => onUpdateStatus(item._id, 'Refunded')}
                 activeOpacity={0.85}
               >
-                <Text style={s.actionRefundText}>Mark as Refunded</Text>
+                <Text style={s.actionRefundText}>{refundedLabel}</Text>
               </TouchableOpacity>
             )}
 
@@ -144,11 +151,11 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
                 onPress={() => onOpenSlip(item.slipUrl)}
                 activeOpacity={0.85}
               >
-                <Text style={s.actionSlipText}>View Slip</Text>
+                <Text style={s.actionSlipText}>{slipLabel}</Text>
               </TouchableOpacity>
             ) : (
               <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact, smallPhone && s.actionBtnSmall]}>
-                <Text style={s.actionDisabledText}>No Slip</Text>
+                <Text style={s.actionDisabledText}>{noSlipLabel}</Text>
               </View>
             )}
 
@@ -164,7 +171,7 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
                 onPress={() => onDeletePayment(item)}
                 activeOpacity={0.85}
               >
-                <Text style={s.actionDeleteText}>Delete Payment</Text>
+                <Text style={s.actionDeleteText}>{deleteLabel}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -174,32 +181,34 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
   );
 };
 
-const AnalyticsBanner = ({ payments, compact }) => {
+const AnalyticsBanner = ({ payments, compact, smallPhone }) => {
   const totalPaid = payments.filter((payment) => payment.status === 'Paid').reduce((sum, payment) => sum + payment.amount, 0);
   const totalPending = payments.filter((payment) => payment.status === 'Pending').reduce((sum, payment) => sum + payment.amount, 0);
   const pendingCount = payments.filter((payment) => payment.status === 'Pending').length;
 
   return (
-    <View style={s.banner}>
+    <View style={[s.banner, compact && s.bannerCompact]}>
       <View style={s.bannerCircle1} />
       <View style={s.bannerCircle2} />
       <View style={[s.bannerGrid, compact && s.bannerGridCompact]}>
         <View style={s.bannerStat}>
           <Text style={s.bannerStatLabel}>Monthly Collection</Text>
-          <Text style={s.bannerStatValue}>${totalPaid.toFixed(2)}</Text>
-          <Text style={s.bannerStatSub}>Confirmed payments</Text>
+          <Text style={[s.bannerStatValue, smallPhone && s.bannerStatValueSmall]}>${totalPaid.toFixed(2)}</Text>
+          <Text style={[s.bannerStatSub, smallPhone && s.bannerStatSubSmall]}>Confirmed payments</Text>
         </View>
         <View style={[s.bannerDivider, compact && s.bannerDividerCompact]} />
         <View style={s.bannerStat}>
           <Text style={s.bannerStatLabel}>Outstanding</Text>
-          <Text style={s.bannerStatValue}>${totalPending.toFixed(2)}</Text>
-          <Text style={s.bannerStatSub}>
+          <Text style={[s.bannerStatValue, smallPhone && s.bannerStatValueSmall]}>${totalPending.toFixed(2)}</Text>
+          <Text style={[s.bannerStatSub, smallPhone && s.bannerStatSubSmall]}>
             {pendingCount} invoice{pendingCount !== 1 ? 's' : ''} pending
           </Text>
         </View>
-        <View style={[s.trendCircle, compact && s.trendCircleCompact]}>
-          <Text style={s.trendIcon}>+</Text>
-        </View>
+        {!smallPhone ? (
+          <View style={[s.trendCircle, compact && s.trendCircleCompact]}>
+            <Text style={s.trendIcon}>+</Text>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -207,9 +216,11 @@ const AnalyticsBanner = ({ payments, compact }) => {
 
 export default function AdminAllPaymentsScreen({ navigation }) {
   const { user } = useAuth();
-  const { width } = useWindowDimensions();
-  const compact = width < 430;
-  const smallPhone = width < 380;
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width < 470 || fontScale > 1.05;
+  const smallPhone = width < 400 || fontScale > 1.18;
+  const hideFilterLabel = width < 360 || fontScale > 1.25;
+  const summaryButtonLabel = smallPhone ? 'Revenue Summary' : 'Open Revenue Summary';
 
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -339,7 +350,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
   return (
     <SafeAreaView style={s.safeArea}>
       <FlatList
-        contentContainerStyle={[s.scroll, smallPhone && s.scrollSmall]}
+        contentContainerStyle={[s.scroll, compact && s.scrollCompact, smallPhone && s.scrollSmall]}
         data={filteredPayments}
         keyExtractor={(item) => item._id}
         refreshControl={
@@ -354,33 +365,38 @@ export default function AdminAllPaymentsScreen({ navigation }) {
         }
         ListHeaderComponent={
           <View>
-            <View style={s.hero}>
+            <View style={[s.hero, compact && s.heroCompact]}>
               <View style={s.heroText}>
-                <Text style={[s.h1, compact && s.h1Compact]}>Admin Payments</Text>
+                <Text style={[s.h1, compact && s.h1Compact, smallPhone && s.h1Small]}>Admin Payments</Text>
                 <Text style={[s.heroSubtitle, smallPhone && s.heroSubtitleSmall]}>
                   Manage payment statuses and review transactions across your entire property portfolio.
                 </Text>
               </View>
               <TouchableOpacity
-                style={[s.summaryBtn, compact && s.summaryBtnCompact]}
+                style={[s.summaryBtn, compact && s.summaryBtnCompact, smallPhone && s.summaryBtnSmall]}
                 onPress={() => navigation.navigate('RevenueSummary')}
                 activeOpacity={0.85}
               >
                 <Text style={s.summaryBtnIcon}>+</Text>
-                <Text style={s.summaryBtnText}>Open Revenue Summary</Text>
+                <Text style={[s.summaryBtnText, smallPhone && s.summaryBtnTextSmall]}>{summaryButtonLabel}</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={[s.filterBar, smallPhone && s.filterBarSmall]}>
-              <Text style={s.filterLabel}>FILTER BY:</Text>
+            <View style={[s.filterBar, compact && s.filterBarCompact, smallPhone && s.filterBarSmall]}>
+              {!hideFilterLabel ? <Text style={s.filterLabel}>FILTER BY:</Text> : null}
               {['All', 'Pending', 'Paid', 'Refunded'].map((filter) => (
                 <TouchableOpacity
                   key={filter}
-                  style={[s.filterPill, smallPhone && s.filterPillSmall, activeFilter === filter && s.filterPillActive]}
+                  style={[
+                    s.filterPill,
+                    compact && s.filterPillCompact,
+                    smallPhone && s.filterPillSmall,
+                    activeFilter === filter && s.filterPillActive
+                  ]}
                   onPress={() => setActiveFilter(filter)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[s.filterPillText, activeFilter === filter && s.filterPillTextActive]}>
+                  <Text style={[s.filterPillText, compact && s.filterPillTextCompact, activeFilter === filter && s.filterPillTextActive]}>
                     {filter === 'All' ? (smallPhone ? 'All' : 'All Transactions') : filter}
                   </Text>
                 </TouchableOpacity>
@@ -398,7 +414,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
             </Text>
           </View>
         }
-        ListFooterComponent={<AnalyticsBanner payments={payments} compact={compact} />}
+        ListFooterComponent={<AnalyticsBanner payments={payments} compact={compact} smallPhone={smallPhone} />}
         renderItem={({ item }) => (
           <PaymentCard
             item={item}
@@ -418,12 +434,15 @@ const s = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: SURFACE },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: SURFACE },
   scroll: { paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16 },
+  scrollCompact: { paddingHorizontal: 14, paddingTop: 18 },
   scrollSmall: { paddingHorizontal: 12, paddingTop: 16 },
 
   hero: { marginBottom: 20, gap: 16 },
+  heroCompact: { marginBottom: 16 },
   heroText: { gap: 6 },
   h1: { fontSize: 36, fontWeight: '700', letterSpacing: -0.72, color: ON_SURFACE, lineHeight: 44 },
   h1Compact: { fontSize: 30, lineHeight: 36 },
+  h1Small: { fontSize: 26, lineHeight: 32 },
   heroSubtitle: { fontSize: 16, fontWeight: '400', color: ON_VARIANT, lineHeight: 24 },
   heroSubtitleSmall: { fontSize: 14, lineHeight: 21 },
 
@@ -441,10 +460,16 @@ const s = StyleSheet.create({
     alignSelf: 'stretch',
     justifyContent: 'center',
   },
+  summaryBtnSmall: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   summaryBtnIcon: { fontSize: 16, color: WHITE, fontWeight: '700' },
   summaryBtnText: { fontSize: 14, fontWeight: '600', color: WHITE, letterSpacing: 0.1 },
+  summaryBtnTextSmall: { fontSize: 13 },
 
   filterBar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  filterBarCompact: { marginBottom: 16 },
   filterBarSmall: { gap: 6, marginBottom: 14 },
   filterLabel: { fontSize: 11, fontWeight: '600', color: ON_VARIANT, letterSpacing: 0.8, marginRight: 4 },
   filterPill: {
@@ -455,12 +480,16 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: OUTLINE_VAR,
   },
+  filterPillCompact: { paddingHorizontal: 12, paddingVertical: 7 },
   filterPillSmall: { paddingHorizontal: 10, paddingVertical: 6 },
   filterPillActive: { backgroundColor: ON_PRI_CONT, borderColor: 'transparent' },
   filterPillText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT },
+  filterPillTextCompact: { fontSize: 11 },
   filterPillTextActive: { color: PRIMARY_CONT },
 
   card: { backgroundColor: WHITE, borderRadius: 12, borderWidth: 0.5, borderColor: OUTLINE_VAR, padding: 16, marginBottom: 12 },
+  cardCompact: { padding: 14 },
+  cardSmall: { padding: 12 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   cardTopCompact: { flexDirection: 'column' },
   cardLeft: { flexDirection: 'row', gap: 12, flex: 1, minWidth: 0 },
@@ -484,27 +513,31 @@ const s = StyleSheet.create({
   cardName: { fontSize: 15, fontWeight: '600', color: ON_SURFACE, lineHeight: 22 },
   cardEmail: { fontSize: 13, fontWeight: '400', color: ON_VARIANT, lineHeight: 18 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' },
+  badgeRowCompact: { alignItems: 'flex-start' },
 
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   badgeSymbol: { fontSize: 12, fontWeight: '700' },
   badgeText: { fontSize: 12, fontWeight: '700' },
   txId: { fontSize: 12, color: ON_VARIANT },
+  txIdCompact: { flexShrink: 1 },
 
   cardRight: { alignItems: 'flex-end', justifyContent: 'space-between', gap: 6, flexShrink: 0 },
-  cardRightCompact: { alignItems: 'stretch' },
+  cardRightCompact: { alignItems: 'stretch', width: '100%' },
   cardRightSmall: { gap: 8 },
+  amountBlock: { alignItems: 'flex-end' },
+  amountBlockCompact: { alignItems: 'flex-start', marginBottom: 4 },
   amount: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4 },
   amountCompact: { fontSize: 18 },
   dateText: { fontSize: 11, color: ON_VARIANT, textAlign: 'right' },
   dateTextCompact: { textAlign: 'left' },
 
   actionsRow: { flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' },
-  actionsRowCompact: { flexWrap: 'wrap' },
+  actionsRowCompact: { flexDirection: 'column', flexWrap: 'nowrap', marginTop: 6 },
   actionsRowSmall: { flexDirection: 'column', gap: 8 },
-  actionBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8 },
+  actionBtn: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8, minHeight: 38, justifyContent: 'center' },
   actionBtnCompact: { minWidth: 0 },
   actionBtnSmall: { width: '100%' },
-  actionBtnFill: { flexGrow: 1 },
+  actionBtnFill: { width: '100%' },
   actionPaid: { backgroundColor: PRIMARY },
   actionPaidText: { fontSize: 12, fontWeight: '600', color: WHITE, textAlign: 'center' },
   actionRefund: { borderWidth: 1, borderColor: OUTLINE, backgroundColor: 'transparent' },
@@ -517,6 +550,7 @@ const s = StyleSheet.create({
   actionDisabledText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT, textAlign: 'center' },
 
   banner: { backgroundColor: ON_PRI_CONT, borderRadius: 16, padding: 24, marginTop: 12, marginBottom: 12, overflow: 'hidden' },
+  bannerCompact: { padding: 18 },
   bannerCircle1: { position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.08)' },
   bannerCircle2: { position: 'absolute', bottom: -36, left: -36, width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,255,255,0.08)' },
   bannerGrid: { flexDirection: 'row', alignItems: 'center', gap: 16 },
@@ -524,7 +558,9 @@ const s = StyleSheet.create({
   bannerStat: { flex: 1, gap: 4 },
   bannerStatLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: PRIMARY, opacity: 0.8 },
   bannerStatValue: { fontSize: 22, fontWeight: '700', color: PRIMARY, letterSpacing: -0.4 },
+  bannerStatValueSmall: { fontSize: 20, lineHeight: 26 },
   bannerStatSub: { fontSize: 13, color: PRIMARY, opacity: 0.85 },
+  bannerStatSubSmall: { fontSize: 12, lineHeight: 18 },
   bannerDivider: { width: 0.5, height: 60, backgroundColor: PRIMARY, opacity: 0.2 },
   bannerDividerCompact: { width: '100%', height: 0.5 },
   trendCircle: {
