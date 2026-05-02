@@ -25,6 +25,15 @@ import MyReviewsScreen from './screens/reviews/MyReviewsScreen';
 import SubmitReviewScreen from './screens/reviews/SubmitReviewScreen';
 import EditReviewScreen from './screens/reviews/EditReviewScreen';
 import AdminAllReviewsScreen from './screens/reviews/AdminAllReviewsScreen';
+import StaffListScreen from './screens/staff/StaffListScreen';
+import StaffDetailScreen from './screens/staff/StaffDetailScreen';
+import AddStaffScreen from './screens/staff/AddStaffScreen';
+import EditStaffScreen from './screens/staff/EditStaffScreen';
+import MyProfileScreen from './screens/staff/MyProfileScreen';
+import MyComplaintsScreen from './screens/complaints/MyComplaintsScreen';
+import SubmitComplaintScreen from './screens/complaints/SubmitComplaintScreen';
+import ComplaintDetailScreen from './screens/complaints/ComplaintDetailScreen';
+import AdminAllComplaintsScreen from './screens/complaints/AdminAllComplaintsScreen';
 
 const Placeholder = ({ name, icon }) => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EFF6FF' }}>
@@ -38,6 +47,8 @@ const RoomStack = createStackNavigator();
 const BookingStack = createStackNavigator();
 const PaymentStack = createStackNavigator();
 const ReviewStack = createStackNavigator();
+const StaffStack = createStackNavigator();
+const ComplaintStack = createStackNavigator();
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -95,8 +106,38 @@ function ReviewsScreen() {
   );
 }
 
-const StaffScreen = () => <Placeholder name="Staff" icon="??" />;
-const ComplaintsScreen = () => <Placeholder name="Complaints" icon="??" />;
+function StaffScreen() {
+  const { user } = useAuth();
+
+  return (
+    <StaffStack.Navigator screenOptions={{ headerShown: false }}>
+      {user?.role === 'staff' ? (
+        <StaffStack.Screen name="MyProfile" component={MyProfileScreen} />
+      ) : (
+        <StaffStack.Screen name="StaffList" component={StaffListScreen} />
+      )}
+      <StaffStack.Screen name="StaffDetail" component={StaffDetailScreen} />
+      <StaffStack.Screen name="AddStaff" component={AddStaffScreen} />
+      <StaffStack.Screen name="EditStaff" component={EditStaffScreen} />
+    </StaffStack.Navigator>
+  );
+}
+
+function ComplaintsScreen() {
+  const { user } = useAuth();
+
+  return (
+    <ComplaintStack.Navigator screenOptions={{ headerShown: false }}>
+      {user?.role === 'admin' ? (
+        <ComplaintStack.Screen name="AdminAllComplaints" component={AdminAllComplaintsScreen} />
+      ) : (
+        <ComplaintStack.Screen name="MyComplaints" component={MyComplaintsScreen} />
+      )}
+      <ComplaintStack.Screen name="SubmitComplaint" component={SubmitComplaintScreen} />
+      <ComplaintStack.Screen name="ComplaintDetail" component={ComplaintDetailScreen} />
+    </ComplaintStack.Navigator>
+  );
+}
 
 
 // Tab icon helper
@@ -197,7 +238,7 @@ function MainTabs() {
         component={PaymentsStackScreen}
         options={{ title: 'Payments', tabBarIcon: ({ focused }) => <TabIcon emoji="💳" label="Pay" focused={focused} /> }}
       />
-      {user?.role === 'admin' && (
+      {(user?.role === 'admin' || user?.role === 'staff') && (
         <Tab.Screen
           name="Staff"
           component={StaffScreen}
