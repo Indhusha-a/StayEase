@@ -25,6 +25,11 @@ import MyReviewsScreen from './screens/reviews/MyReviewsScreen';
 import SubmitReviewScreen from './screens/reviews/SubmitReviewScreen';
 import EditReviewScreen from './screens/reviews/EditReviewScreen';
 import AdminAllReviewsScreen from './screens/reviews/AdminAllReviewsScreen';
+import StaffListScreen from './screens/staff/StaffListScreen';
+import StaffDetailScreen from './screens/staff/StaffDetailScreen';
+import AddStaffScreen from './screens/staff/AddStaffScreen';
+import EditStaffScreen from './screens/staff/EditStaffScreen';
+import MyProfileScreen from './screens/staff/MyProfileScreen';
 
 const Placeholder = ({ name, icon }) => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EFF6FF' }}>
@@ -38,6 +43,7 @@ const RoomStack = createStackNavigator();
 const BookingStack = createStackNavigator();
 const PaymentStack = createStackNavigator();
 const ReviewStack = createStackNavigator();
+const StaffStack = createStackNavigator();
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -95,7 +101,23 @@ function ReviewsScreen() {
   );
 }
 
-const StaffScreen = () => <Placeholder name="Staff" icon="??" />;
+function StaffScreen() {
+  const { user } = useAuth();
+
+  return (
+    <StaffStack.Navigator screenOptions={{ headerShown: false }}>
+      {user?.role === 'staff' ? (
+        <StaffStack.Screen name="MyProfile" component={MyProfileScreen} />
+      ) : (
+        <StaffStack.Screen name="StaffList" component={StaffListScreen} />
+      )}
+      <StaffStack.Screen name="StaffDetail" component={StaffDetailScreen} />
+      <StaffStack.Screen name="AddStaff" component={AddStaffScreen} />
+      <StaffStack.Screen name="EditStaff" component={EditStaffScreen} />
+    </StaffStack.Navigator>
+  );
+}
+
 const ComplaintsScreen = () => <Placeholder name="Complaints" icon="??" />;
 
 
@@ -197,7 +219,7 @@ function MainTabs() {
         component={PaymentsStackScreen}
         options={{ title: 'Payments', tabBarIcon: ({ focused }) => <TabIcon emoji="💳" label="Pay" focused={focused} /> }}
       />
-      {user?.role === 'admin' && (
+      {(user?.role === 'admin' || user?.role === 'staff') && (
         <Tab.Screen
           name="Staff"
           component={StaffScreen}
