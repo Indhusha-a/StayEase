@@ -50,7 +50,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compact }) => {
+const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compact, smallPhone }) => {
   const isPaid = item.status === 'Paid';
   const isRefunded = item.status === 'Refunded';
   const canDelete = isPaid || isRefunded;
@@ -87,18 +87,24 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
           </View>
         </View>
 
-        <View style={[s.cardRight, compact && s.cardRightCompact]}>
-          <Text style={[s.amount, { color: amountColor }]}>${Number(item.amount || 0).toFixed(2)}</Text>
+        <View style={[s.cardRight, compact && s.cardRightCompact, smallPhone && s.cardRightSmall]}>
+          <Text style={[s.amount, compact && s.amountCompact, { color: amountColor }]}>${Number(item.amount || 0).toFixed(2)}</Text>
           <Text style={[s.dateText, compact && s.dateTextCompact]}>{formattedDate}</Text>
 
-          <View style={[s.actionsRow, compact && s.actionsRowCompact]}>
+          <View style={[s.actionsRow, compact && s.actionsRowCompact, smallPhone && s.actionsRowSmall]}>
             {isPaid ? (
-              <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact]}>
+              <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact, smallPhone && s.actionBtnSmall]}>
                 <Text style={s.actionDisabledText}>Mark as Paid</Text>
               </View>
             ) : (
               <TouchableOpacity
-                style={[s.actionBtn, s.actionPaid, compact && s.actionBtnCompact, compact && s.actionBtnFill]}
+                style={[
+                  s.actionBtn,
+                  s.actionPaid,
+                  compact && s.actionBtnCompact,
+                  compact && !smallPhone && s.actionBtnFill,
+                  smallPhone && s.actionBtnSmall,
+                ]}
                 onPress={() => onUpdateStatus(item._id, 'Paid')}
                 activeOpacity={0.85}
               >
@@ -107,12 +113,18 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
             )}
 
             {isRefunded ? (
-              <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact]}>
+              <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact, smallPhone && s.actionBtnSmall]}>
                 <Text style={s.actionDisabledText}>Mark as Refunded</Text>
               </View>
             ) : (
               <TouchableOpacity
-                style={[s.actionBtn, s.actionRefund, compact && s.actionBtnCompact, compact && s.actionBtnFill]}
+                style={[
+                  s.actionBtn,
+                  s.actionRefund,
+                  compact && s.actionBtnCompact,
+                  compact && !smallPhone && s.actionBtnFill,
+                  smallPhone && s.actionBtnSmall,
+                ]}
                 onPress={() => onUpdateStatus(item._id, 'Refunded')}
                 activeOpacity={0.85}
               >
@@ -122,21 +134,33 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
 
             {hasSlip ? (
               <TouchableOpacity
-                style={[s.actionBtn, s.actionSlip, compact && s.actionBtnCompact, compact && s.actionBtnFill]}
+                style={[
+                  s.actionBtn,
+                  s.actionSlip,
+                  compact && s.actionBtnCompact,
+                  compact && !smallPhone && s.actionBtnFill,
+                  smallPhone && s.actionBtnSmall,
+                ]}
                 onPress={() => onOpenSlip(item.slipUrl)}
                 activeOpacity={0.85}
               >
                 <Text style={s.actionSlipText}>View Slip</Text>
               </TouchableOpacity>
             ) : (
-              <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact]}>
+              <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact, smallPhone && s.actionBtnSmall]}>
                 <Text style={s.actionDisabledText}>No Slip</Text>
               </View>
             )}
 
             {canDelete ? (
               <TouchableOpacity
-                style={[s.actionBtn, s.actionDelete, compact && s.actionBtnCompact, compact && s.actionBtnFill]}
+                style={[
+                  s.actionBtn,
+                  s.actionDelete,
+                  compact && s.actionBtnCompact,
+                  compact && !smallPhone && s.actionBtnFill,
+                  smallPhone && s.actionBtnSmall,
+                ]}
                 onPress={() => onDeletePayment(item)}
                 activeOpacity={0.85}
               >
@@ -185,6 +209,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
   const { user } = useAuth();
   const { width } = useWindowDimensions();
   const compact = width < 430;
+  const smallPhone = width < 380;
 
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -314,7 +339,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
   return (
     <SafeAreaView style={s.safeArea}>
       <FlatList
-        contentContainerStyle={s.scroll}
+        contentContainerStyle={[s.scroll, smallPhone && s.scrollSmall]}
         data={filteredPayments}
         keyExtractor={(item) => item._id}
         refreshControl={
@@ -332,7 +357,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
             <View style={s.hero}>
               <View style={s.heroText}>
                 <Text style={[s.h1, compact && s.h1Compact]}>Admin Payments</Text>
-                <Text style={s.heroSubtitle}>
+                <Text style={[s.heroSubtitle, smallPhone && s.heroSubtitleSmall]}>
                   Manage payment statuses and review transactions across your entire property portfolio.
                 </Text>
               </View>
@@ -346,17 +371,17 @@ export default function AdminAllPaymentsScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            <View style={s.filterBar}>
+            <View style={[s.filterBar, smallPhone && s.filterBarSmall]}>
               <Text style={s.filterLabel}>FILTER BY:</Text>
               {['All', 'Pending', 'Paid', 'Refunded'].map((filter) => (
                 <TouchableOpacity
                   key={filter}
-                  style={[s.filterPill, activeFilter === filter && s.filterPillActive]}
+                  style={[s.filterPill, smallPhone && s.filterPillSmall, activeFilter === filter && s.filterPillActive]}
                   onPress={() => setActiveFilter(filter)}
                   activeOpacity={0.8}
                 >
                   <Text style={[s.filterPillText, activeFilter === filter && s.filterPillTextActive]}>
-                    {filter === 'All' ? 'All Transactions' : filter}
+                    {filter === 'All' ? (smallPhone ? 'All' : 'All Transactions') : filter}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -381,6 +406,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
             onOpenSlip={openSlip}
             onDeletePayment={deletePayment}
             compact={compact}
+            smallPhone={smallPhone}
           />
         )}
       />
@@ -392,12 +418,14 @@ const s = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: SURFACE },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: SURFACE },
   scroll: { paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16 },
+  scrollSmall: { paddingHorizontal: 12, paddingTop: 16 },
 
   hero: { marginBottom: 20, gap: 16 },
   heroText: { gap: 6 },
   h1: { fontSize: 36, fontWeight: '700', letterSpacing: -0.72, color: ON_SURFACE, lineHeight: 44 },
   h1Compact: { fontSize: 30, lineHeight: 36 },
   heroSubtitle: { fontSize: 16, fontWeight: '400', color: ON_VARIANT, lineHeight: 24 },
+  heroSubtitleSmall: { fontSize: 14, lineHeight: 21 },
 
   summaryBtn: {
     flexDirection: 'row',
@@ -417,6 +445,7 @@ const s = StyleSheet.create({
   summaryBtnText: { fontSize: 14, fontWeight: '600', color: WHITE, letterSpacing: 0.1 },
 
   filterBar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  filterBarSmall: { gap: 6, marginBottom: 14 },
   filterLabel: { fontSize: 11, fontWeight: '600', color: ON_VARIANT, letterSpacing: 0.8, marginRight: 4 },
   filterPill: {
     paddingHorizontal: 14,
@@ -426,6 +455,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: OUTLINE_VAR,
   },
+  filterPillSmall: { paddingHorizontal: 10, paddingVertical: 6 },
   filterPillActive: { backgroundColor: ON_PRI_CONT, borderColor: 'transparent' },
   filterPillText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT },
   filterPillTextActive: { color: PRIMARY_CONT },
@@ -462,14 +492,18 @@ const s = StyleSheet.create({
 
   cardRight: { alignItems: 'flex-end', justifyContent: 'space-between', gap: 6, flexShrink: 0 },
   cardRightCompact: { alignItems: 'stretch' },
+  cardRightSmall: { gap: 8 },
   amount: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4 },
+  amountCompact: { fontSize: 18 },
   dateText: { fontSize: 11, color: ON_VARIANT, textAlign: 'right' },
   dateTextCompact: { textAlign: 'left' },
 
   actionsRow: { flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' },
   actionsRowCompact: { flexWrap: 'wrap' },
+  actionsRowSmall: { flexDirection: 'column', gap: 8 },
   actionBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8 },
-  actionBtnCompact: { minWidth: 120 },
+  actionBtnCompact: { minWidth: 0 },
+  actionBtnSmall: { width: '100%' },
   actionBtnFill: { flexGrow: 1 },
   actionPaid: { backgroundColor: PRIMARY },
   actionPaidText: { fontSize: 12, fontWeight: '600', color: WHITE, textAlign: 'center' },
