@@ -1,72 +1,124 @@
-const paymentService = require('./paymentService');
+const PaymentService = require('./paymentService');
 
-// Handles payment creation requests from guests.
+// ---------------------------------------------------------------------------
+// Each controller method is a thin HTTP adapter:
+//   1. Extract what the service needs from req
+//   2. Call the service
+//   3. Map the result (or error) to an HTTP response
+//
+// Business logic lives entirely in paymentService.js — controllers should
+// not duplicate validation or database access.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// @desc    Create a new payment for an approved booking
+// @route   POST /api/payments
+// @access  Private — Guest only
+// ---------------------------------------------------------------------------
 const createPayment = async (req, res) => {
   try {
-    const payment = await paymentService.createPayment({
-      ...req.body,
-      userId: req.user._id
+    const { bookingId, amount, paymentMethod, transactionReference, notes } = req.body;
+
+    const payment = await PaymentService.createPayment({
+      bookingId,
+      amount,
+      paymentMethod,
+      transactionReference,
+      notes,
+      userId: req.user._id  // Injected by auth middleware; never trust the request body
     });
-    res.status(201).json(payment);
+
+    return res.status(201).json(payment);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    const statusCode = error.status || 500;
+    return res.status(statusCode).json({ message: error.message });
   }
 };
 
-// Returns all payments for the admin payment management view.
+// ---------------------------------------------------------------------------
+// @desc    Get all payments across all users
+// @route   GET /api/payments
+// @access  Private — Admin only
+// ---------------------------------------------------------------------------
 const getAllPayments = async (_req, res) => {
   try {
-    const payments = await paymentService.getAllPayments();
-    res.json(payments);
+    const payments = await PaymentService.getAllPayments();
+    return res.json(payments);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    return res
+      .status(500)
+      .json({ message: 'Failed to fetch payments', error: error.message });
   }
 };
 
-// Returns only the authenticated user's payments.
+// ---------------------------------------------------------------------------
+// @desc    Get all payments belonging to the logged-in guest
+// @route   GET /api/payments/my
+// @access  Private — Guest only
+// ---------------------------------------------------------------------------
 const getMyPayments = async (req, res) => {
   try {
-    const payments = await paymentService.getMyPayments(req.user._id);
-    res.json(payments);
+    const payments = await PaymentService.getMyPayments(req.user._id);
+    return res.json(payments);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    return res
+      .status(500)
+      .json({ message: 'Failed to fetch your payments', error: error.message });
   }
 };
 
-// Returns a single payment when the user owns it or is an admin.
+// ---------------------------------------------------------------------------
+// @desc    Get a single payment by ID
+// @route   GET /api/payments/:id
+// @access  Private — Owner or Admin
+// ---------------------------------------------------------------------------
 const getPaymentById = async (req, res) => {
   try {
-    const payment = await paymentService.getPaymentById({
+    const payment = await PaymentService.getPaymentById({
       paymentId: req.params.id,
       userId: req.user._id,
       userRole: req.user.role
     });
-    res.json(payment);
+
+    return res.json(payment);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    const statusCode = error.status || 500;
+    return res.status(statusCode).json({ message: error.message });
   }
 };
 
-// Allows admins to update a payment to a supported final status.
+// ---------------------------------------------------------------------------
+// @desc    Update a payment's status to Paid or Refunded
+// @route   PUT /api/payments/:id/status
+// @access  Private — Admin only
+// ---------------------------------------------------------------------------
 const updatePaymentStatus = async (req, res) => {
   try {
-    const payment = await paymentService.updatePaymentStatus({
+    const payment = await PaymentService.updatePaymentStatus({
       paymentId: req.params.id,
       status: req.body.status
     });
-    res.json(payment);
+
+    return res.json(payment);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    const statusCode = error.status || 500;
+    return res.status(statusCode).json({ message: error.message });
   }
 };
 
-// Returns aggregated payment totals for the revenue summary screen.
+// ---------------------------------------------------------------------------
+// @desc    Get revenue summary grouped by payment status
+// @route   GET /api/payments/stats
+// @access  Private — Admin only
+// ---------------------------------------------------------------------------
 const getPaymentStats = async (_req, res) => {
   try {
-    const summary = await paymentService.getPaymentStats();
-    res.json(summary);
+    const summary = await PaymentService.getPaymentStats();
+    return res.json(summary);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    return res
+      .status(500)
+      .json({ message: 'Failed to fetch payment stats', error: error.message });
   }
 };
 

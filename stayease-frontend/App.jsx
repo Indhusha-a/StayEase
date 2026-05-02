@@ -6,20 +6,16 @@ import { ActivityIndicator, View, Text, TouchableOpacity } from 'react-native';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { BookingProvider } from './context/BookingContext';
-import IndexScreen    from './screens/home/IndexScreen';
-import LoginScreen    from './screens/auth/LoginScreen';
 import IndexScreen from './screens/home/IndexScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
 import RoomListScreen from './screens/rooms/RoomListScreen';
 import RoomDetailScreen from './screens/rooms/RoomDetailScreen';
-import AddRoomScreen    from './screens/rooms/AddRoomScreen';
-import EditRoomScreen   from './screens/rooms/EditRoomScreen';
+import AddRoomScreen from './screens/rooms/AddRoomScreen';
+import EditRoomScreen from './screens/rooms/EditRoomScreen';
 import BookingListScreen from './screens/bookings/BookingListScreen';
 import BookingDetailScreen from './screens/bookings/BookingDetailScreen';
 import CreateBookingScreen from './screens/bookings/CreateBookingScreen';
-import AddRoomScreen from './screens/rooms/AddRoomScreen';
-import EditRoomScreen from './screens/rooms/EditRoomScreen';
 import PaymentScreen from './screens/payments/PaymentScreen';
 import MyPaymentsScreen from './screens/payments/MyPaymentsScreen';
 import PaymentReceiptScreen from './screens/payments/PaymentReceiptScreen';
@@ -38,8 +34,8 @@ const Placeholder = ({ name, icon }) => (
   </View>
 );
 
-// ── Room Stack ──
 const RoomStack = createStackNavigator();
+const BookingStack = createStackNavigator();
 const PaymentStack = createStackNavigator();
 const ReviewStack = createStackNavigator();
 const Stack = createStackNavigator();
@@ -55,9 +51,8 @@ function RoomsScreen() {
     </RoomStack.Navigator>
   );
 }
-const BookingStack = createStackNavigator();
 
-function BookingsStackNav() {
+function BookingsScreen() {
   return (
     <BookingStack.Navigator screenOptions={{ headerShown: false }}>
       <BookingStack.Screen name="BookingList" component={BookingListScreen} />
@@ -70,11 +65,6 @@ function BookingsStackNav() {
 function PaymentsStackScreen() {
   const { user } = useAuth();
 
-// Each member imports and replaces their screen here
-const BookingsScreen = () => <BookingsStackNav />;
-const ReviewsScreen    = () => <Placeholder name="Reviews"    icon="⭐" />;
-const PaymentsScreen   = () => <Placeholder name="Payments"   icon="💳" />;
-const StaffScreen      = () => <Placeholder name="Staff"      icon="👥" />;
   return (
     <PaymentStack.Navigator screenOptions={{ headerShown: false }}>
       <PaymentStack.Screen
@@ -91,6 +81,7 @@ const StaffScreen      = () => <Placeholder name="Staff"      icon="👥" />;
 
 function ReviewsScreen() {
   const { user } = useAuth();
+
   return (
     <ReviewStack.Navigator screenOptions={{ headerShown: false }}>
       {user?.role === 'admin' ? (
@@ -98,16 +89,14 @@ function ReviewsScreen() {
       ) : (
         <ReviewStack.Screen name="MyReviews" component={MyReviewsScreen} />
       )}
-      <ReviewStack.Screen name="SubmitReview"    component={SubmitReviewScreen} />
-      <ReviewStack.Screen name="EditReview"      component={EditReviewScreen} />
-      
+      <ReviewStack.Screen name="SubmitReview" component={SubmitReviewScreen} />
+      <ReviewStack.Screen name="EditReview" component={EditReviewScreen} />
     </ReviewStack.Navigator>
   );
 }
-const BookingsScreen = () => <Placeholder name="Bookings" icon="📅" />;
 
-const StaffScreen = () => <Placeholder name="Staff" icon="👥" />;
-const ComplaintsScreen = () => <Placeholder name="Complaints" icon="🔧" />;
+const StaffScreen = () => <Placeholder name="Staff" icon="??" />;
+const ComplaintsScreen = () => <Placeholder name="Complaints" icon="??" />;
 
 const Stack = createStackNavigator();
 const Tab   = createBottomTabNavigator();
@@ -255,9 +244,9 @@ export default function App() {
   return (
     <AuthProvider>
       <BookingProvider>
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
       </BookingProvider>
     </AuthProvider>
   );
