@@ -29,7 +29,7 @@ export const BookingProvider = ({ children }) => {
       });
 
       console.log('Booking created successfully:', response.data);
-      setBookings((current) => [...current, response.data]);
+      setBookings([...bookings, response.data]);
       return response.data;
     } catch (err) {
       console.log('=== BOOKING ERROR ===');
@@ -95,9 +95,8 @@ export const BookingProvider = ({ children }) => {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const updatedBooking = response.data.booking;
-      setBookings((current) => current.map((b) => (b._id === id ? { ...b, ...updatedBooking } : b)));
-      return updatedBooking;
+      setBookings(bookings.map(b => b._id === id ? response.data : b));
+      return response.data;
     } catch (err) {
       const message = err.response?.data?.message || 'Failed to cancel booking';
       setError(message);
@@ -136,9 +135,8 @@ export const BookingProvider = ({ children }) => {
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const updatedBooking = response.data.booking;
-      setBookings((current) => current.map((b) => (b._id === id ? { ...b, ...updatedBooking } : b)));
-      return updatedBooking;
+      setBookings(bookings.map(b => b._id === id ? response.data : b));
+      return response.data;
     } catch (err) {
       const message = err.response?.data?.message || 'Failed to update booking';
       setError(message);

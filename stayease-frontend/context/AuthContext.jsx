@@ -14,38 +14,14 @@ export const AuthProvider = ({ children }) => {
   const loadStoredAuth = async () => {
     try {
       const storedToken = await AsyncStorage.getItem('token');
-      if (storedToken) {
-        api.defaults.headers.common.Authorization = `Bearer ${storedToken}`;
-
-        const res = await api.get('/auth/me', {
-          headers: { Authorization: `Bearer ${storedToken}` },
-        });
-
-        const hydratedUser = {
-          id: res.data._id || res.data.id,
-          name: res.data.name,
-          email: res.data.email,
-          role: res.data.role,
-          phone: res.data.phone || '',
-        };
-
-        await AsyncStorage.setItem('token', storedToken);
-        await AsyncStorage.setItem('user', JSON.stringify(hydratedUser));
-
+      const storedUser = await AsyncStorage.getItem('user');
+      if (storedToken && storedUser) {
         setToken(storedToken);
-        setUser(hydratedUser);
-      } else {
-        delete api.defaults.headers.common.Authorization;
-        setToken(null);
-        setUser(null);
+        setUser(JSON.parse(storedUser));
+        api.defaults.headers.common.Authorization = `Bearer ${storedToken}`;
       }
     } catch (e) {
       console.log('Auth load error:', e);
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      delete api.defaults.headers.common.Authorization;
-      setToken(null);
-      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -62,25 +38,8 @@ export const AuthProvider = ({ children }) => {
     return u;
   };
 
-  const register = async (input) => {
-    const payload =
-      input && typeof input === 'object'
-        ? {
-            name: input.name || input.fullName || '',
-            email: input.email || '',
-            password: input.password || '',
-            phone: input.phone || '',
-            role: 'guest',
-          }
-        : {
-            name: '',
-            email: '',
-            password: '',
-            phone: '',
-            role: 'guest',
-          };
-
-    const res = await api.post('/auth/register', payload);
+  const register = async (name, email, password, phone) => {
+    const res = await api.post('/auth/register', { name, email, password, phone, role: 'guest' });
     const { token: t, user: u } = res.data;
     await AsyncStorage.setItem('token', t);
     await AsyncStorage.setItem('user', JSON.stringify(u));

@@ -6,7 +6,10 @@ const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 const passwordRules = [
-  { test: (v) => v.length >= 6, message: 'Password must be at least 6 characters' },
+  { test: (v) => v.length >= 8, message: 'Password must be at least 8 characters' },
+  { test: (v) => /[A-Z]/.test(v), message: 'Password must include at least one uppercase letter' },
+  { test: (v) => /[a-z]/.test(v), message: 'Password must include at least one lowercase letter' },
+  { test: (v) => /\d/.test(v), message: 'Password must include at least one number' },
 ];
 
 const validatePassword = (password = '') => {
@@ -34,27 +37,12 @@ const checkEmailAvailability = async (email) => {
   return { available: !exists };
 };
 
-const asTrimmedString = (value) => {
-  if (typeof value !== 'string') return '';
-  return value.trim();
-};
+const registerUser = async ({ name, email, password, role, phone }) => {
+  const trimmedName = (name || '').trim();
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  const cleanedPhone = (phone || '').trim();
 
-const registerUser = async (payload = {}) => {
-  const {
-    name,
-    fullName,
-    email,
-    password,
-    role,
-    phone
-  } = payload;
-
-  const trimmedName = asTrimmedString(name) || asTrimmedString(fullName);
-  const normalizedEmail = asTrimmedString(email).toLowerCase();
-  const cleanedPhone = asTrimmedString(phone);
-  const normalizedPassword = typeof password === 'string' ? password : '';
-
-  if (!trimmedName || !normalizedEmail || !normalizedPassword) {
+  if (!trimmedName || !normalizedEmail || !password) {
     const error = new Error('Name, email and password are required');
     error.status = 400;
     throw error;
@@ -66,7 +54,7 @@ const registerUser = async (payload = {}) => {
     throw error;
   }
 
-  const passwordError = validatePassword(normalizedPassword);
+  const passwordError = validatePassword(password);
   if (passwordError) {
     const error = new Error(passwordError);
     error.status = 400;
@@ -80,7 +68,7 @@ const registerUser = async (payload = {}) => {
     throw error;
   }
 
-  const hashedPassword = await bcrypt.hash(normalizedPassword, 10);
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   const user = await User.create({
     name: trimmedName,

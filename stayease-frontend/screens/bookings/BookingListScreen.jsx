@@ -7,30 +7,7 @@ import { useBooking } from '../../context/BookingContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 
-const getBookingRef = (value) => (typeof value === 'string' ? value : value?._id);
-
-const mapPaymentsByBooking = (payments = []) => (
-  payments.reduce((acc, payment) => {
-    const bookingRef = getBookingRef(payment.bookingId);
-    if (bookingRef) {
-      acc[bookingRef] = payment;
-    }
-    return acc;
-  }, {})
-);
-
-const BookingCard = ({
-  booking,
-  payment,
-  onCancel,
-  onApprove,
-  onReject,
-  onOpenDetails,
-  onPayNow,
-  onViewPayment,
-  isAdmin,
-  userId,
-}) => {
+const BookingCard = ({ booking, onCancel, onApprove, onReject, isAdmin, userId }) => {
   const [cancelling, setCancelling] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -115,11 +92,8 @@ const BookingCard = ({
     });
   };
 
-  const ownerId = getBookingRef(booking.userId);
-  const isOwner = ownerId === userId;
+  const isOwner = booking.userId === userId || booking.userId._id === userId;
   const isPending = booking.status === 'Pending';
-  const isApproved = booking.status === 'Approved';
-  const hasPayment = Boolean(payment?._id);
 
   return (
     <View style={styles.card}>
@@ -142,204 +116,130 @@ const BookingCard = ({
 
       <View style={styles.cardBody}>
         <View style={styles.dateRow}>
-          <Text style={styles.dateLabel}>{formatDate(booking.checkInDate)} - {formatDate(booking.checkOutDate)}</Text>
+          <Text style={styles.dateLabel}>📅 {formatDate(booking.checkInDate)} - {formatDate(booking.checkOutDate)}</Text>
         </View>
-
+        
         <View style={styles.detailsRow}>
-          <Text style={styles.detail}>{booking.numberOfGuests} guest{booking.numberOfGuests > 1 ? 's' : ''}</Text>
-          <Text style={styles.detail}>$ {booking.totalPrice}</Text>
+          <Text style={styles.detail}>👥 {booking.numberOfGuests} guest{booking.numberOfGuests > 1 ? 's' : ''}</Text>
+          <Text style={styles.detail}>💰 $ {booking.totalPrice}</Text>
         </View>
 
-        {payment ? (
-          <View style={styles.paymentBox}>
-            <Text style={styles.paymentLabel}>Payment</Text>
-            <Text style={styles.paymentText}>{payment.status} via {payment.paymentMethod}</Text>
-          </View>
-        ) : null}
-
-        {booking.specialRequests ? (
+        {booking.specialRequests && (
           <View style={styles.requestsBox}>
             <Text style={styles.requestsLabel}>Special Requests:</Text>
             <Text style={styles.requestsText}>{booking.specialRequests}</Text>
           </View>
-        ) : null}
+        )}
       </View>
 
+      {/* Action Buttons */}
       <View style={styles.actionRow}>
-        {isAdmin && isPending ? (
+        {/* Guest can cancel if Pending */}
+        {isOwner && isPending && (
+          <TouchableOpacity 
+            style={[styles.btn, styles.cancelBtn]}
+            onPress={handleCancel}
+            disabled={cancelling}
+          >
+            <Text style={styles.btnText}>{cancelling ? '⏳' : '❌'} Cancel</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Admin can approve/reject if Pending */}
+        {isAdmin && isPending && (
           <>
-            <TouchableOpacity
+            <TouchableOpacity 
               style={[styles.btn, styles.approveBtn]}
               onPress={handleApprove}
               disabled={updating}
-              activeOpacity={0.85}
             >
-              <Text style={styles.btnText}>{updating ? 'Updating...' : 'Approve'}</Text>
+              <Text style={styles.btnText}>{updating ? '⏳' : '✅'} Approve</Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity 
               style={[styles.btn, styles.rejectBtn]}
               onPress={handleReject}
               disabled={updating}
-              activeOpacity={0.85}
             >
-              <Text style={styles.btnText}>{updating ? 'Updating...' : 'Reject'}</Text>
+              <Text style={styles.btnText}>{updating ? '⏳' : '❌'} Reject</Text>
             </TouchableOpacity>
           </>
-        ) : null}
-
-        {!isAdmin && isOwner ? (
-          <>
-            <TouchableOpacity
-              style={[styles.btn, styles.detailsBtn]}
-              onPress={() => onOpenDetails(booking)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.btnText}>Details</Text>
-            </TouchableOpacity>
-
-            {isPending ? (
-              <TouchableOpacity
-                style={[styles.btn, styles.cancelBtn]}
-                onPress={handleCancel}
-                disabled={cancelling}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.btnText}>{cancelling ? 'Cancelling...' : 'Cancel'}</Text>
-              </TouchableOpacity>
-            ) : null}
-
-            {isApproved && !hasPayment ? (
-              <TouchableOpacity
-                style={[styles.btn, styles.payBtn]}
-                onPress={() => onPayNow(booking)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.btnText}>Pay Now</Text>
-              </TouchableOpacity>
-            ) : null}
-
-            {isApproved && hasPayment ? (
-              <TouchableOpacity
-                style={[styles.btn, styles.receiptBtn]}
-                onPress={() => onViewPayment(payment)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.btnText}>View Payment</Text>
-              </TouchableOpacity>
-            ) : null}
-          </>
-        ) : null}
+        )}
       </View>
     </View>
   );
 };
 
 export default function BookingListScreen({ navigation }) {
-  const { getMyBookings, getAllBookings, cancelBooking, updateBookingStatus } = useBooking();
+  const { getMyBookings, getAllBookings } = useBooking();
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
-  const [paymentsByBooking, setPaymentsByBooking] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const isAdmin = user?.role === 'admin';
-  const currentUserId = user?.id || user?._id;
 
   useEffect(() => {
+    console.log('BookingListScreen mounted / focused');
     fetchBookings();
-
-    const unsubscribe = navigation.addListener('focus', fetchBookings);
+    
+    const unsubscribe = navigation.addListener('focus', () => {
+         console.log('BookingListScreen focus event');
+        fetchBookings();
+    });
     return unsubscribe;
-  }, [navigation, isAdmin, currentUserId]);
-
-  const fetchGuestPayments = async () => {
-    const response = await api.get('/payments/my');
-    return mapPaymentsByBooking(response.data || []);
-  };
+  }, [navigation, isAdmin, user?._id]);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
-
       if (isAdmin) {
-        const response = await getAllBookings();
-        setBookings(response.bookings || []);
-        setPaymentsByBooking({});
+        const res = await api.get('/bookings');
+        setBookings(res.data.bookings);
       } else {
-        const [bookingResponse, payments] = await Promise.all([
-          getMyBookings(),
-          fetchGuestPayments(),
-        ]);
-        setBookings(bookingResponse.bookings || []);
-        setPaymentsByBooking(payments);
+        const res = await api.get('/bookings/my');
+        
+      console.log('Bookings response:', res.data.bookings?.map(b => ({ id: b._id, status: b.status })));
+      setBookings(res.data.bookings);
       }
     } catch (err) {
       console.error('Failed to fetch bookings:', err);
-      Alert.alert('Error', err.response?.data?.message || err.message || 'Failed to fetch bookings');
+      Alert.alert('Error', 'Failed to fetch bookings');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const replaceBooking = (bookingId, updatedBooking) => {
-    setBookings((current) => current.map((booking) => (
-      booking._id === bookingId ? { ...booking, ...updatedBooking } : booking
-    )));
-  };
-
   const handleCancel = async (bookingId) => {
     try {
-      const updatedBooking = await cancelBooking(bookingId);
-      replaceBooking(bookingId, updatedBooking);
-      await fetchBookings();
+      console.log('Cancelling booking ID:', bookingId);  // ✅ ADD THIS
+    const response = await api.put(`/bookings/${bookingId}/cancel`);
+    console.log('Cancel response:', response.data); 
       Alert.alert('Success', 'Booking cancelled successfully');
+      fetchBookings();
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.message || err.message || 'Failed to cancel booking');
+        console.log('Cancel error response:', err.response?.data);
+      Alert.alert('Error', err.response?.data?.message || 'Failed to cancel booking');
     }
   };
 
   const handleApprove = async (bookingId) => {
     try {
-      const updatedBooking = await updateBookingStatus(bookingId, 'Approved');
-      replaceBooking(bookingId, updatedBooking);
-      await fetchBookings();
+      await api.put(`/bookings/${bookingId}/status`, { status: 'Approved' });
       Alert.alert('Success', 'Booking approved successfully');
+      fetchBookings();
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.message || err.message || 'Failed to approve booking');
+      Alert.alert('Error', err.response?.data?.message || 'Failed to approve booking');
     }
   };
 
   const handleReject = async (bookingId) => {
     try {
-      const updatedBooking = await updateBookingStatus(bookingId, 'Rejected');
-      replaceBooking(bookingId, updatedBooking);
-      await fetchBookings();
+      await api.put(`/bookings/${bookingId}/status`, { status: 'Rejected' });
       Alert.alert('Success', 'Booking rejected successfully');
+      fetchBookings();
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.message || err.message || 'Failed to reject booking');
+      Alert.alert('Error', err.response?.data?.message || 'Failed to reject booking');
     }
-  };
-
-  const openDetails = (booking) => {
-    navigation.navigate('BookingDetail', { bookingId: booking._id });
-  };
-
-  const openPayment = (booking) => {
-    navigation.navigate('Payments', {
-      screen: 'PaymentCreate',
-      params: {
-        bookingId: booking._id,
-        booking,
-        amount: booking.totalPrice,
-      },
-    });
-  };
-
-  const openReceipt = (payment) => {
-    navigation.navigate('Payments', {
-      screen: 'PaymentReceipt',
-      params: { paymentId: payment._id },
-    });
   };
 
   if (loading) {
@@ -364,39 +264,32 @@ export default function BookingListScreen({ navigation }) {
 
       <FlatList
         data={bookings}
-        keyExtractor={(b) => b._id}
+        keyExtractor={b => b._id}
         renderItem={({ item }) => (
-          <BookingCard
+          <BookingCard 
             booking={item}
-            payment={paymentsByBooking[item._id]}
             onCancel={handleCancel}
             onApprove={handleApprove}
             onReject={handleReject}
-            onOpenDetails={openDetails}
-            onPayNow={openPayment}
-            onViewPayment={openReceipt}
             isAdmin={isAdmin}
-            userId={currentUserId}
+            userId={user?._id}
           />
         )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        refreshControl={(
+        refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              fetchBookings();
-            }}
+            onRefresh={() => { setRefreshing(true); fetchBookings(); }}
             colors={['#1D4ED8']}
           />
-        )}
-        ListEmptyComponent={(
+        }
+        ListEmptyComponent={
           <View style={styles.center}>
-            <Text style={styles.emptyIcon}>No bookings yet</Text>
+            <Text style={{ fontSize: 48 }}>📅</Text>
             <Text style={styles.emptyText}>No bookings found</Text>
           </View>
-        )}
+        }
       />
     </SafeAreaView>
   );
@@ -410,21 +303,21 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
   headerSub: { fontSize: 13, color: '#BFDBFE', marginTop: 4 },
   list: { padding: 16, paddingBottom: 100 },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+  card: { 
+    backgroundColor: '#fff', 
+    borderRadius: 12, 
     marginBottom: 16,
-    borderWidth: 1,
+    borderWidth: 1, 
     borderColor: '#E5E7EB',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowColor: '#000', 
+    shadowOpacity: 0.05, 
     shadowRadius: 4,
     elevation: 2
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  cardHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
@@ -432,12 +325,12 @@ const styles = StyleSheet.create({
   },
   roomName: { fontSize: 16, fontWeight: 'bold', color: '#1F2937' },
   roomType: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20
+  statusBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 10, 
+    paddingVertical: 4, 
+    borderRadius: 20 
   },
   statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 4 },
   statusText: { fontSize: 11, fontWeight: 'bold', textTransform: 'capitalize' },
@@ -446,45 +339,33 @@ const styles = StyleSheet.create({
   dateLabel: { fontSize: 13, color: '#374151', fontWeight: '500' },
   detailsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   detail: { fontSize: 12, color: '#6B7280' },
-  paymentBox: {
-    backgroundColor: '#DCFCE7',
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 12
-  },
-  paymentLabel: { fontSize: 11, fontWeight: '600', color: '#166534' },
-  paymentText: { fontSize: 12, color: '#166534', marginTop: 4 },
-  requestsBox: {
-    backgroundColor: '#FEF3C7',
-    padding: 10,
+  requestsBox: { 
+    backgroundColor: '#FEF3C7', 
+    padding: 10, 
     borderRadius: 6,
     borderLeftWidth: 3,
     borderLeftColor: '#F59E0B'
   },
   requestsLabel: { fontSize: 11, fontWeight: '600', color: '#92400E' },
   requestsText: { fontSize: 12, color: '#B45309', marginTop: 4 },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 8,
+  actionRow: { 
+    flexDirection: 'row', 
+    gap: 8, 
     padding: 12,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6'
   },
-  btn: {
-    flex: 1,
-    paddingVertical: 10,
+  btn: { 
+    flex: 1, 
+    paddingVertical: 10, 
     paddingHorizontal: 12,
-    borderRadius: 6,
+    borderRadius: 6, 
     alignItems: 'center',
     justifyContent: 'center'
   },
-  detailsBtn: { backgroundColor: '#E0E7FF', borderWidth: 1, borderColor: '#C7D2FE' },
   cancelBtn: { backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#FECACA' },
   approveBtn: { backgroundColor: '#DCFCE7', borderWidth: 1, borderColor: '#BBF7D0' },
   rejectBtn: { backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#FECACA' },
-  payBtn: { backgroundColor: '#DBEAFE', borderWidth: 1, borderColor: '#BFDBFE' },
-  receiptBtn: { backgroundColor: '#ECFCCB', borderWidth: 1, borderColor: '#D9F99D' },
   btnText: { fontSize: 12, fontWeight: '600', color: '#1F2937' },
-  emptyIcon: { fontSize: 16, color: '#6B7280' },
   emptyText: { color: '#9CA3AF', fontSize: 15, marginTop: 10 },
 });
