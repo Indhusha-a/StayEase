@@ -30,6 +30,10 @@ import StaffDetailScreen from './screens/staff/StaffDetailScreen';
 import AddStaffScreen from './screens/staff/AddStaffScreen';
 import EditStaffScreen from './screens/staff/EditStaffScreen';
 import MyProfileScreen from './screens/staff/MyProfileScreen';
+import MyComplaintsScreen from './screens/complaints/MyComplaintsScreen';
+import SubmitComplaintScreen from './screens/complaints/SubmitComplaintScreen';
+import ComplaintDetailScreen from './screens/complaints/ComplaintDetailScreen';
+import AdminAllComplaintsScreen from './screens/complaints/AdminAllComplaintsScreen';
 
 const Placeholder = ({ name, icon }) => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EFF6FF' }}>
@@ -44,6 +48,7 @@ const BookingStack = createStackNavigator();
 const PaymentStack = createStackNavigator();
 const ReviewStack = createStackNavigator();
 const StaffStack = createStackNavigator();
+const ComplaintStack = createStackNavigator();
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -118,7 +123,21 @@ function StaffScreen() {
   );
 }
 
-const ComplaintsScreen = () => <Placeholder name="Complaints" icon="??" />;
+function ComplaintsScreen() {
+  const { user } = useAuth();
+
+  return (
+    <ComplaintStack.Navigator screenOptions={{ headerShown: false }}>
+      {user?.role === 'admin' ? (
+        <ComplaintStack.Screen name="AdminAllComplaints" component={AdminAllComplaintsScreen} />
+      ) : (
+        <ComplaintStack.Screen name="MyComplaints" component={MyComplaintsScreen} />
+      )}
+      <ComplaintStack.Screen name="SubmitComplaint" component={SubmitComplaintScreen} />
+      <ComplaintStack.Screen name="ComplaintDetail" component={ComplaintDetailScreen} />
+    </ComplaintStack.Navigator>
+  );
+}
 
 
 // Tab icon helper
