@@ -37,30 +37,26 @@ const PersonIcon = () => (
 
 const StatusBadge = ({ status }) => {
   const config = {
-    Paid: { bg: '#dcfce7', text: '#15803d', symbol: 'OK' },
-    Pending: { bg: '#fef3c7', text: '#b45309', symbol: '...' },
-    Refunded: { bg: '#f1f5f9', text: '#475569', symbol: 'R' },
-  }[status] || { bg: SURF_VAR, text: ON_VARIANT, symbol: '.' };
+    Paid: { bg: '#dcfce7', text: '#15803d', label: 'Paid' },
+    Pending: { bg: '#fef3c7', text: '#b45309', label: 'Pending' },
+    Refunded: { bg: '#f1f5f9', text: '#475569', label: 'Refunded' },
+  }[status] || { bg: SURF_VAR, text: ON_VARIANT, label: status || '—' };
 
   return (
     <View style={[s.badge, { backgroundColor: config.bg }]}>
-      <Text style={[s.badgeSymbol, { color: config.text }]}>{config.symbol}</Text>
-      <Text style={[s.badgeText, { color: config.text }]}>{status}</Text>
+      <Text style={[s.badgeText, { color: config.text }]} numberOfLines={1}>
+        {config.label}
+      </Text>
     </View>
   );
 };
 
-const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compact, smallPhone }) => {
+const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, smallPhone }) => {
   const isPaid = item.status === 'Paid';
   const isRefunded = item.status === 'Refunded';
   const canDelete = isPaid || isRefunded;
   const hasSlip = Boolean(item.slipUrl);
   const amountColor = isRefunded ? ON_VARIANT : PRIMARY;
-  const paidLabel = smallPhone ? 'Paid' : 'Mark as Paid';
-  const refundedLabel = smallPhone ? 'Refund' : 'Mark as Refunded';
-  const slipLabel = smallPhone ? 'Slip' : 'View Slip';
-  const deleteLabel = smallPhone ? 'Delete' : 'Delete Payment';
-  const noSlipLabel = smallPhone ? 'No Slip' : 'No Slip';
 
   const formattedDate = item.paymentDate
     ? `${new Date(item.paymentDate).toLocaleDateString('en-US', {
@@ -74,141 +70,143 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compac
     : '-';
 
   return (
-    <View style={[s.card, compact && s.cardCompact, smallPhone && s.cardSmall]}>
-      <View style={[s.cardTop, compact && s.cardTopCompact]}>
-        <View style={[s.cardLeft, compact && s.cardLeftCompact]}>
-          <PersonIcon />
-          <View style={s.cardInfo}>
-            <Text style={s.cardName} numberOfLines={1}>
-              {item.userId?.name || item.userId?.email || 'Unknown'}
+    <View style={s.card}>
+      {/* Top row: avatar + info + amount */}
+      <View style={s.cardTop}>
+        <View style={s.personCircle}>
+          <View style={s.personHead} />
+          <View style={s.personBody} />
+        </View>
+
+        <View style={s.cardMid}>
+          <Text style={s.cardName} numberOfLines={1}>
+            {item.userId?.name || item.userId?.email || 'Unknown'}
+          </Text>
+          <Text style={s.cardEmail} numberOfLines={1}>
+            {item.userId?.email || ''}
+          </Text>
+          <View style={s.badgeRow}>
+            <StatusBadge status={item.status} />
+            <Text style={s.txId} numberOfLines={1}>
+              #{item._id?.slice(-6).toUpperCase() || 'N/A'}
             </Text>
-            <Text style={s.cardEmail} numberOfLines={1}>
-              {item.userId?.email || ''}
-            </Text>
-            <View style={[s.badgeRow, compact && s.badgeRowCompact]}>
-              <StatusBadge status={item.status} />
-              <Text style={[s.txId, compact && s.txIdCompact]}>ID: #{item._id?.slice(-6).toUpperCase() || 'N/A'}</Text>
-            </View>
           </View>
         </View>
 
-        <View style={[s.cardRight, compact && s.cardRightCompact, smallPhone && s.cardRightSmall]}>
-          <View style={[s.amountBlock, compact && s.amountBlockCompact]}>
-            <Text style={[s.amount, compact && s.amountCompact, { color: amountColor }]}>${Number(item.amount || 0).toFixed(2)}</Text>
-            <Text style={[s.dateText, compact && s.dateTextCompact]}>{formattedDate}</Text>
-          </View>
-
-          <View style={[s.actionsRow, compact && s.actionsRowCompact, smallPhone && s.actionsRowSmall]}>
-            {isPaid ? (
-              <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact, smallPhone && s.actionBtnSmall]}>
-                <Text style={s.actionDisabledText}>{paidLabel}</Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[
-                  s.actionBtn,
-                  s.actionPaid,
-                  compact && s.actionBtnCompact,
-                  compact && !smallPhone && s.actionBtnFill,
-                  smallPhone && s.actionBtnSmall,
-                ]}
-                onPress={() => onUpdateStatus(item._id, 'Paid')}
-                activeOpacity={0.85}
-              >
-                <Text style={s.actionPaidText}>{paidLabel}</Text>
-              </TouchableOpacity>
-            )}
-
-            {isRefunded ? (
-              <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact, smallPhone && s.actionBtnSmall]}>
-                <Text style={s.actionDisabledText}>{refundedLabel}</Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[
-                  s.actionBtn,
-                  s.actionRefund,
-                  compact && s.actionBtnCompact,
-                  compact && !smallPhone && s.actionBtnFill,
-                  smallPhone && s.actionBtnSmall,
-                ]}
-                onPress={() => onUpdateStatus(item._id, 'Refunded')}
-                activeOpacity={0.85}
-              >
-                <Text style={s.actionRefundText}>{refundedLabel}</Text>
-              </TouchableOpacity>
-            )}
-
-            {hasSlip ? (
-              <TouchableOpacity
-                style={[
-                  s.actionBtn,
-                  s.actionSlip,
-                  compact && s.actionBtnCompact,
-                  compact && !smallPhone && s.actionBtnFill,
-                  smallPhone && s.actionBtnSmall,
-                ]}
-                onPress={() => onOpenSlip(item.slipUrl)}
-                activeOpacity={0.85}
-              >
-                <Text style={s.actionSlipText}>{slipLabel}</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={[s.actionBtn, s.actionDisabled, compact && s.actionBtnCompact, smallPhone && s.actionBtnSmall]}>
-                <Text style={s.actionDisabledText}>{noSlipLabel}</Text>
-              </View>
-            )}
-
-            {canDelete ? (
-              <TouchableOpacity
-                style={[
-                  s.actionBtn,
-                  s.actionDelete,
-                  compact && s.actionBtnCompact,
-                  compact && !smallPhone && s.actionBtnFill,
-                  smallPhone && s.actionBtnSmall,
-                ]}
-                onPress={() => onDeletePayment(item)}
-                activeOpacity={0.85}
-              >
-                <Text style={s.actionDeleteText}>{deleteLabel}</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
+        <View style={s.cardAmountBlock}>
+          <Text style={[s.amount, { color: amountColor }]} numberOfLines={1}>
+            ${Number(item.amount || 0).toFixed(2)}
+          </Text>
+          <Text style={s.dateText} numberOfLines={2}>
+            {formattedDate}
+          </Text>
         </View>
+      </View>
+
+      {/* Actions row */}
+      <View style={s.actionsRow}>
+        {isPaid ? (
+          <View style={[s.actionBtn, s.actionDisabled]}>
+            <Text style={s.actionDisabledText} numberOfLines={1}>
+              {smallPhone ? 'Paid' : 'Mark as Paid'}
+            </Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[s.actionBtn, s.actionPaid]}
+            onPress={() => onUpdateStatus(item._id, 'Paid')}
+            activeOpacity={0.85}
+          >
+            <Text style={s.actionPaidText} numberOfLines={1}>
+              {smallPhone ? 'Paid' : 'Mark as Paid'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {isRefunded ? (
+          <View style={[s.actionBtn, s.actionDisabled]}>
+            <Text style={s.actionDisabledText} numberOfLines={1}>
+              {smallPhone ? 'Refund' : 'Mark as Refunded'}
+            </Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[s.actionBtn, s.actionRefund]}
+            onPress={() => onUpdateStatus(item._id, 'Refunded')}
+            activeOpacity={0.85}
+          >
+            <Text style={s.actionRefundText} numberOfLines={1}>
+              {smallPhone ? 'Refund' : 'Mark as Refunded'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {hasSlip ? (
+          <TouchableOpacity
+            style={[s.actionBtn, s.actionSlip]}
+            onPress={() => onOpenSlip(item.slipUrl)}
+            activeOpacity={0.85}
+          >
+            <Text style={s.actionSlipText} numberOfLines={1}>
+              {smallPhone ? 'Slip' : 'View Slip'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={[s.actionBtn, s.actionDisabled]}>
+            <Text style={s.actionDisabledText} numberOfLines={1}>
+              {smallPhone ? 'No Slip' : 'No Slip'}
+            </Text>
+          </View>
+        )}
+
+        {canDelete ? (
+          <TouchableOpacity
+            style={[s.actionBtn, s.actionDelete]}
+            onPress={() => onDeletePayment(item)}
+            activeOpacity={0.85}
+          >
+            <Text style={s.actionDeleteText} numberOfLines={1}>
+              {smallPhone ? 'Delete' : 'Delete Payment'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
 };
 
-const AnalyticsBanner = ({ payments, compact, smallPhone }) => {
-  const totalPaid = payments.filter((payment) => payment.status === 'Paid').reduce((sum, payment) => sum + payment.amount, 0);
-  const totalPending = payments.filter((payment) => payment.status === 'Pending').reduce((sum, payment) => sum + payment.amount, 0);
-  const pendingCount = payments.filter((payment) => payment.status === 'Pending').length;
+const AnalyticsBanner = ({ payments, smallPhone }) => {
+  const totalPaid = payments.filter((p) => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
+  const totalPending = payments.filter((p) => p.status === 'Pending').reduce((sum, p) => sum + p.amount, 0);
+  const pendingCount = payments.filter((p) => p.status === 'Pending').length;
 
   return (
-    <View style={[s.banner, compact && s.bannerCompact]}>
+    <View style={s.banner}>
       <View style={s.bannerCircle1} />
       <View style={s.bannerCircle2} />
-      <View style={[s.bannerGrid, compact && s.bannerGridCompact]}>
+      <View style={s.bannerGrid}>
         <View style={s.bannerStat}>
           <Text style={s.bannerStatLabel}>Monthly Collection</Text>
-          <Text style={[s.bannerStatValue, smallPhone && s.bannerStatValueSmall]}>${totalPaid.toFixed(2)}</Text>
+          <Text style={[s.bannerStatValue, smallPhone && s.bannerStatValueSmall]}>
+            ${totalPaid.toFixed(2)}
+          </Text>
           <Text style={[s.bannerStatSub, smallPhone && s.bannerStatSubSmall]}>Confirmed payments</Text>
         </View>
-        <View style={[s.bannerDivider, compact && s.bannerDividerCompact]} />
+        <View style={s.bannerDivider} />
         <View style={s.bannerStat}>
           <Text style={s.bannerStatLabel}>Outstanding</Text>
-          <Text style={[s.bannerStatValue, smallPhone && s.bannerStatValueSmall]}>${totalPending.toFixed(2)}</Text>
+          <Text style={[s.bannerStatValue, smallPhone && s.bannerStatValueSmall]}>
+            ${totalPending.toFixed(2)}
+          </Text>
           <Text style={[s.bannerStatSub, smallPhone && s.bannerStatSubSmall]}>
             {pendingCount} invoice{pendingCount !== 1 ? 's' : ''} pending
           </Text>
         </View>
-        {!smallPhone ? (
-          <View style={[s.trendCircle, compact && s.trendCircleCompact]}>
+        {!smallPhone && (
+          <View style={s.trendCircle}>
             <Text style={s.trendIcon}>+</Text>
           </View>
-        ) : null}
+        )}
       </View>
     </View>
   );
@@ -217,10 +215,9 @@ const AnalyticsBanner = ({ payments, compact, smallPhone }) => {
 export default function AdminAllPaymentsScreen({ navigation }) {
   const { user } = useAuth();
   const { width, fontScale } = useWindowDimensions();
-  const compact = width < 470 || fontScale > 1.05;
-  const smallPhone = width < 400 || fontScale > 1.18;
-  const hideFilterLabel = width < 360 || fontScale > 1.25;
-  const summaryButtonLabel = smallPhone ? 'Revenue Summary' : 'Open Revenue Summary';
+  // Raised threshold: only trigger smallPhone for genuinely tiny screens
+  const smallPhone = width < 360 || fontScale > 1.25;
+  const hideFilterLabel = width < 340;
 
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -254,30 +251,27 @@ export default function AdminAllPaymentsScreen({ navigation }) {
     }
   };
 
-  const deletePayment = useCallback(
-    (payment) => {
-      Alert.alert(
-        'Delete Payment',
-        `Delete this ${payment.status.toLowerCase()} payment? This action cannot be undone.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await api.delete(`/payments/${payment._id}`);
-                setPayments((prev) => prev.filter((row) => row._id !== payment._id));
-              } catch (err) {
-                Alert.alert('Delete Failed', err.response?.data?.message || 'Unable to delete payment');
-              }
-            },
+  const deletePayment = useCallback((payment) => {
+    Alert.alert(
+      'Delete Payment',
+      `Delete this ${payment.status.toLowerCase()} payment? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/payments/${payment._id}`);
+              setPayments((prev) => prev.filter((row) => row._id !== payment._id));
+            } catch (err) {
+              Alert.alert('Delete Failed', err.response?.data?.message || 'Unable to delete payment');
+            }
           },
-        ]
-      );
-    },
-    []
-  );
+        },
+      ]
+    );
+  }, []);
 
   const resolveSlipUrl = useCallback((rawUrl = '') => {
     if (!rawUrl) return '';
@@ -290,12 +284,10 @@ export default function AdminAllPaymentsScreen({ navigation }) {
     const isCloudinaryUrl = /res\.cloudinary\.com/i.test(url);
     const isPdf = /\.pdf(?:$|\?)/i.test(url);
     if (!isCloudinaryUrl || !isPdf) return '';
-
     let previewUrl = url;
     if (previewUrl.includes('/upload/')) {
       previewUrl = previewUrl.replace('/upload/', '/upload/pg_1,f_jpg/');
     }
-
     return previewUrl.replace(/\.pdf(?=($|\?))/i, '.jpg');
   }, []);
 
@@ -306,12 +298,8 @@ export default function AdminAllPaymentsScreen({ navigation }) {
         Alert.alert('Slip Missing', 'No uploaded slip found for this payment.');
         return;
       }
-
-      // Cloudinary free plans can block direct PDF delivery.
-      // For PDFs, open page-1 JPG preview to keep admin review working.
       const previewUrl = buildCloudinaryPdfPreviewUrl(slipUrl);
       const targetUrl = previewUrl || slipUrl;
-
       try {
         const supported = await Linking.canOpenURL(targetUrl);
         if (!supported) {
@@ -327,7 +315,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
   );
 
   const filteredPayments = useMemo(
-    () => (activeFilter === 'All' ? payments : payments.filter((payment) => payment.status === activeFilter)),
+    () => (activeFilter === 'All' ? payments : payments.filter((p) => p.status === activeFilter)),
     [payments, activeFilter]
   );
 
@@ -350,7 +338,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
   return (
     <SafeAreaView style={s.safeArea}>
       <FlatList
-        contentContainerStyle={[s.scroll, compact && s.scrollCompact, smallPhone && s.scrollSmall]}
+        contentContainerStyle={s.scroll}
         data={filteredPayments}
         keyExtractor={(item) => item._id}
         refreshControl={
@@ -365,38 +353,43 @@ export default function AdminAllPaymentsScreen({ navigation }) {
         }
         ListHeaderComponent={
           <View>
-            <View style={[s.hero, compact && s.heroCompact]}>
+            {/* Hero */}
+            <View style={s.hero}>
               <View style={s.heroText}>
-                <Text style={[s.h1, compact && s.h1Compact, smallPhone && s.h1Small]}>Admin Payments</Text>
+                <Text style={[s.h1, smallPhone && s.h1Small]}>Admin Payments</Text>
                 <Text style={[s.heroSubtitle, smallPhone && s.heroSubtitleSmall]}>
                   Manage payment statuses and review transactions across your entire property portfolio.
                 </Text>
               </View>
               <TouchableOpacity
-                style={[s.summaryBtn, compact && s.summaryBtnCompact, smallPhone && s.summaryBtnSmall]}
+                style={s.summaryBtn}
                 onPress={() => navigation.navigate('RevenueSummary')}
                 activeOpacity={0.85}
               >
                 <Text style={s.summaryBtnIcon}>+</Text>
-                <Text style={[s.summaryBtnText, smallPhone && s.summaryBtnTextSmall]}>{summaryButtonLabel}</Text>
+                <Text style={s.summaryBtnText}>
+                  {smallPhone ? 'Revenue Summary' : 'Open Revenue Summary'}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            <View style={[s.filterBar, compact && s.filterBarCompact, smallPhone && s.filterBarSmall]}>
-              {!hideFilterLabel ? <Text style={s.filterLabel}>FILTER BY:</Text> : null}
+            {/* Filter bar */}
+            <View style={s.filterBar}>
+              {!hideFilterLabel && <Text style={s.filterLabel}>FILTER BY:</Text>}
               {['All', 'Pending', 'Paid', 'Refunded'].map((filter) => (
                 <TouchableOpacity
                   key={filter}
-                  style={[
-                    s.filterPill,
-                    compact && s.filterPillCompact,
-                    smallPhone && s.filterPillSmall,
-                    activeFilter === filter && s.filterPillActive
-                  ]}
+                  style={[s.filterPill, activeFilter === filter && s.filterPillActive]}
                   onPress={() => setActiveFilter(filter)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[s.filterPillText, compact && s.filterPillTextCompact, activeFilter === filter && s.filterPillTextActive]}>
+                  <Text
+                    style={[
+                      s.filterPillText,
+                      activeFilter === filter && s.filterPillTextActive,
+                    ]}
+                    numberOfLines={1}
+                  >
                     {filter === 'All' ? (smallPhone ? 'All' : 'All Transactions') : filter}
                   </Text>
                 </TouchableOpacity>
@@ -414,14 +407,13 @@ export default function AdminAllPaymentsScreen({ navigation }) {
             </Text>
           </View>
         }
-        ListFooterComponent={<AnalyticsBanner payments={payments} compact={compact} smallPhone={smallPhone} />}
+        ListFooterComponent={<AnalyticsBanner payments={payments} smallPhone={smallPhone} />}
         renderItem={({ item }) => (
           <PaymentCard
             item={item}
             onUpdateStatus={updateStatus}
             onOpenSlip={openSlip}
             onDeletePayment={deletePayment}
-            compact={compact}
             smallPhone={smallPhone}
           />
         )}
@@ -433,18 +425,15 @@ export default function AdminAllPaymentsScreen({ navigation }) {
 const s = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: SURFACE },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: SURFACE },
-  scroll: { paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16 },
-  scrollCompact: { paddingHorizontal: 14, paddingTop: 18 },
-  scrollSmall: { paddingHorizontal: 12, paddingTop: 16 },
+  scroll: { paddingHorizontal: 16, paddingTop: 24, paddingBottom: 24 },
 
-  hero: { marginBottom: 20, gap: 16 },
-  heroCompact: { marginBottom: 16 },
+  // ── Hero ──────────────────────────────────────────────────────────────────
+  hero: { marginBottom: 20, gap: 14 },
   heroText: { gap: 6 },
-  h1: { fontSize: 36, fontWeight: '700', letterSpacing: -0.72, color: ON_SURFACE, lineHeight: 44 },
-  h1Compact: { fontSize: 30, lineHeight: 36 },
+  h1: { fontSize: 32, fontWeight: '700', letterSpacing: -0.5, color: ON_SURFACE, lineHeight: 40 },
   h1Small: { fontSize: 26, lineHeight: 32 },
-  heroSubtitle: { fontSize: 16, fontWeight: '400', color: ON_VARIANT, lineHeight: 24 },
-  heroSubtitleSmall: { fontSize: 14, lineHeight: 21 },
+  heroSubtitle: { fontSize: 15, fontWeight: '400', color: ON_VARIANT, lineHeight: 22 },
+  heroSubtitleSmall: { fontSize: 13, lineHeight: 20 },
 
   summaryBtn: {
     flexDirection: 'row',
@@ -456,22 +445,24 @@ const s = StyleSheet.create({
     borderRadius: 12,
     alignSelf: 'flex-start',
   },
-  summaryBtnCompact: {
-    alignSelf: 'stretch',
-    justifyContent: 'center',
-  },
-  summaryBtnSmall: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
   summaryBtnIcon: { fontSize: 16, color: WHITE, fontWeight: '700' },
   summaryBtnText: { fontSize: 14, fontWeight: '600', color: WHITE, letterSpacing: 0.1 },
-  summaryBtnTextSmall: { fontSize: 13 },
 
-  filterBar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  filterBarCompact: { marginBottom: 16 },
-  filterBarSmall: { gap: 6, marginBottom: 14 },
-  filterLabel: { fontSize: 11, fontWeight: '600', color: ON_VARIANT, letterSpacing: 0.8, marginRight: 4 },
+  // ── Filter bar ────────────────────────────────────────────────────────────
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  filterLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: ON_VARIANT,
+    letterSpacing: 0.8,
+    marginRight: 4,
+  },
   filterPill: {
     paddingHorizontal: 14,
     paddingVertical: 7,
@@ -480,104 +471,210 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: OUTLINE_VAR,
   },
-  filterPillCompact: { paddingHorizontal: 12, paddingVertical: 7 },
-  filterPillSmall: { paddingHorizontal: 10, paddingVertical: 6 },
   filterPillActive: { backgroundColor: ON_PRI_CONT, borderColor: 'transparent' },
   filterPillText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT },
-  filterPillTextCompact: { fontSize: 11 },
   filterPillTextActive: { color: PRIMARY_CONT },
 
-  card: { backgroundColor: WHITE, borderRadius: 12, borderWidth: 0.5, borderColor: OUTLINE_VAR, padding: 16, marginBottom: 12 },
-  cardCompact: { padding: 14 },
-  cardSmall: { padding: 12 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  cardTopCompact: { flexDirection: 'column' },
-  cardLeft: { flexDirection: 'row', gap: 12, flex: 1, minWidth: 0 },
-  cardLeftCompact: { flex: 0 },
+  // ── Card ──────────────────────────────────────────────────────────────────
+  card: {
+    backgroundColor: WHITE,
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: OUTLINE_VAR,
+    padding: 14,
+    marginBottom: 12,
+    gap: 12,
+  },
 
+  // Top section: avatar | info | amount (always row, never wraps weirdly)
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+
+  // Avatar
   personCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: SURF_CONT_LOW,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
     overflow: 'hidden',
-    paddingTop: 6,
+    paddingTop: 5,
   },
-  personHead: { width: 14, height: 14, borderRadius: 7, backgroundColor: PRIMARY, marginBottom: 2 },
-  personBody: { width: 22, height: 12, borderRadius: 11, backgroundColor: PRIMARY },
+  personHead: { width: 13, height: 13, borderRadius: 7, backgroundColor: PRIMARY, marginBottom: 2 },
+  personBody: { width: 20, height: 11, borderRadius: 10, backgroundColor: PRIMARY },
 
-  cardInfo: { flex: 1, gap: 2, minWidth: 0 },
-  cardName: { fontSize: 15, fontWeight: '600', color: ON_SURFACE, lineHeight: 22 },
-  cardEmail: { fontSize: 13, fontWeight: '400', color: ON_VARIANT, lineHeight: 18 },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' },
-  badgeRowCompact: { alignItems: 'flex-start' },
+  // Middle info column — takes remaining space
+  cardMid: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  cardName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: ON_SURFACE,
+    lineHeight: 20,
+  },
+  cardEmail: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: ON_VARIANT,
+    lineHeight: 17,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
 
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  badgeSymbol: { fontSize: 12, fontWeight: '700' },
-  badgeText: { fontSize: 12, fontWeight: '700' },
-  txId: { fontSize: 12, color: ON_VARIANT },
-  txIdCompact: { flexShrink: 1 },
+  // Badge — NO rotation risk
+  badge: {
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 999,
+    alignSelf: 'flex-start', // shrink to content, prevents stretching
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  txId: {
+    fontSize: 11,
+    color: ON_VARIANT,
+    flexShrink: 1,
+  },
 
-  cardRight: { alignItems: 'flex-end', justifyContent: 'space-between', gap: 6, flexShrink: 0 },
-  cardRightCompact: { alignItems: 'stretch', width: '100%' },
-  cardRightSmall: { gap: 8 },
-  amountBlock: { alignItems: 'flex-end' },
-  amountBlockCompact: { alignItems: 'flex-start', marginBottom: 4 },
-  amount: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4 },
-  amountCompact: { fontSize: 18 },
-  dateText: { fontSize: 11, color: ON_VARIANT, textAlign: 'right' },
-  dateTextCompact: { textAlign: 'left' },
+  // Right: amount + date, fixed width so it never crowds the middle
+  cardAmountBlock: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+    maxWidth: 130,
+    gap: 2,
+  },
+  amount: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  dateText: {
+    fontSize: 10,
+    color: ON_VARIANT,
+    textAlign: 'right',
+    lineHeight: 14,
+  },
 
-  actionsRow: { flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' },
-  actionsRowCompact: { flexDirection: 'column', flexWrap: 'nowrap', marginTop: 6 },
-  actionsRowSmall: { flexDirection: 'column', gap: 8 },
-  actionBtn: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8, minHeight: 38, justifyContent: 'center' },
-  actionBtnCompact: { minWidth: 0 },
-  actionBtnSmall: { width: '100%' },
-  actionBtnFill: { width: '100%' },
+  // ── Actions row (always horizontal, wraps naturally) ─────────────────────
+  actionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  actionBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 1, // allows shrinking on narrow screens
+  },
   actionPaid: { backgroundColor: PRIMARY },
-  actionPaidText: { fontSize: 12, fontWeight: '600', color: WHITE, textAlign: 'center' },
+  actionPaidText: { fontSize: 12, fontWeight: '600', color: WHITE },
   actionRefund: { borderWidth: 1, borderColor: OUTLINE, backgroundColor: 'transparent' },
-  actionRefundText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT, textAlign: 'center' },
+  actionRefundText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT },
   actionSlip: { borderWidth: 1, borderColor: PRIMARY, backgroundColor: 'transparent' },
-  actionSlipText: { fontSize: 12, fontWeight: '600', color: PRIMARY, textAlign: 'center' },
+  actionSlipText: { fontSize: 12, fontWeight: '600', color: PRIMARY },
   actionDelete: { backgroundColor: '#dc2626' },
-  actionDeleteText: { fontSize: 12, fontWeight: '600', color: WHITE, textAlign: 'center' },
-  actionDisabled: { backgroundColor: SURF_VAR, opacity: 0.4 },
-  actionDisabledText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT, textAlign: 'center' },
+  actionDeleteText: { fontSize: 12, fontWeight: '600', color: WHITE },
+  actionDisabled: { backgroundColor: SURF_VAR, opacity: 0.45 },
+  actionDisabledText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT },
 
-  banner: { backgroundColor: ON_PRI_CONT, borderRadius: 16, padding: 24, marginTop: 12, marginBottom: 12, overflow: 'hidden' },
-  bannerCompact: { padding: 18 },
-  bannerCircle1: { position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.08)' },
-  bannerCircle2: { position: 'absolute', bottom: -36, left: -36, width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,255,255,0.08)' },
-  bannerGrid: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  bannerGridCompact: { flexDirection: 'column', alignItems: 'stretch' },
+  // ── Analytics banner ─────────────────────────────────────────────────────
+  banner: {
+    backgroundColor: ON_PRI_CONT,
+    borderRadius: 16,
+    padding: 22,
+    marginTop: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  bannerCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  bannerCircle2: {
+    position: 'absolute',
+    bottom: -36,
+    left: -36,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  bannerGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
   bannerStat: { flex: 1, gap: 4 },
-  bannerStatLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: PRIMARY, opacity: 0.8 },
-  bannerStatValue: { fontSize: 22, fontWeight: '700', color: PRIMARY, letterSpacing: -0.4 },
-  bannerStatValueSmall: { fontSize: 20, lineHeight: 26 },
+  bannerStatLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: PRIMARY,
+    opacity: 0.8,
+  },
+  bannerStatValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: PRIMARY,
+    letterSpacing: -0.4,
+  },
+  bannerStatValueSmall: { fontSize: 19, lineHeight: 26 },
   bannerStatSub: { fontSize: 13, color: PRIMARY, opacity: 0.85 },
   bannerStatSubSmall: { fontSize: 12, lineHeight: 18 },
-  bannerDivider: { width: 0.5, height: 60, backgroundColor: PRIMARY, opacity: 0.2 },
-  bannerDividerCompact: { width: '100%', height: 0.5 },
+  bannerDivider: {
+    width: 0.5,
+    height: 56,
+    backgroundColor: PRIMARY,
+    opacity: 0.2,
+  },
   trendCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     borderWidth: 2,
     borderColor: 'rgba(0,55,176,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
-  trendCircleCompact: { alignSelf: 'flex-start' },
   trendIcon: { fontSize: 22, color: PRIMARY, fontWeight: '700' },
 
+  // ── Empty state ───────────────────────────────────────────────────────────
   emptyState: { alignItems: 'center', paddingVertical: 48, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: ON_SURFACE },
-  emptySubtitle: { fontSize: 14, color: OUTLINE, textAlign: 'center', lineHeight: 20, paddingHorizontal: 32 },
+  emptySubtitle: {
+    fontSize: 14,
+    color: OUTLINE,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 32,
+  },
   emptyText: { fontSize: 16, color: OUTLINE },
 });
