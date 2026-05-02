@@ -26,6 +26,7 @@ const createPayment = async ({
   amount,
   paymentMethod,
   transactionReference,
+  slipUrl,
   notes,
   userId
 }) => {
@@ -61,6 +62,7 @@ const createPayment = async ({
     amount,
     paymentMethod,
     transactionReference,
+    slipUrl,
     notes
   });
 };

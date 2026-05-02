@@ -6,9 +6,9 @@ import { useAuth } from '../../context/AuthContext';
 import paymentStyles from './paymentStyles';
 
 const badgeColor = (status) => {
-  if (status === 'Paid') return '#DCFCE7';
-  if (status === 'Refunded') return '#DBEAFE';
-  return '#FEF3C7';
+  if (status === 'Paid') return { backgroundColor: '#dcfce7', color: '#15803d' };
+  if (status === 'Refunded') return { backgroundColor: '#f1f5f9', color: '#475569' };
+  return { backgroundColor: '#fef3c7', color: '#b45309' };
 };
 
 export default function MyPaymentsScreen({ navigation }) {
@@ -37,7 +37,11 @@ export default function MyPaymentsScreen({ navigation }) {
   );
 
   if (loading) {
-    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="#1D4ED8" /></View>;
+    return (
+      <View style={paymentStyles.centered}>
+        <ActivityIndicator size="large" color="#0037b0" />
+      </View>
+    );
   }
 
   return (
@@ -46,33 +50,85 @@ export default function MyPaymentsScreen({ navigation }) {
         contentContainerStyle={paymentStyles.scroll}
         data={payments}
         keyExtractor={(item) => item._id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPayments(); }} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchPayments();
+            }}
+            tintColor="#0037b0"
+          />
+        }
         ListHeaderComponent={(
-          <View style={paymentStyles.header}>
-            <Text style={paymentStyles.title}>{user?.role === 'admin' ? 'All Payments' : 'My Payments'}</Text>
-            <Text style={paymentStyles.subtitle}>Track payment history with status badges.</Text>
+          <View>
+            <View style={paymentStyles.header}>
+              <Text style={paymentStyles.title}>{user?.role === 'admin' ? 'All Payments' : 'My Payments'}</Text>
+              <Text style={paymentStyles.subtitle}>Track payment history with status badges and receipt access.</Text>
+            </View>
+
+            <View style={paymentStyles.heroPanel}>
+              <View style={paymentStyles.heroCircle1} />
+              <View style={paymentStyles.heroCircle2} />
+              <Text style={paymentStyles.heroEyebrow}>Payment Overview</Text>
+              <Text style={paymentStyles.heroValue}>{payments.length} transaction{payments.length !== 1 ? 's' : ''}</Text>
+              <Text style={paymentStyles.heroSubValue}>Tap any payment to open the full receipt.</Text>
+            </View>
           </View>
         )}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={paymentStyles.card} onPress={() => navigation.navigate('PaymentReceipt', { paymentId: item._id })}>
-            <View style={paymentStyles.row}>
-              <Text style={paymentStyles.label}>Amount</Text>
-              <Text style={paymentStyles.value}>${Number(item.amount || 0).toFixed(2)}</Text>
-            </View>
-            <View style={paymentStyles.row}>
-              <Text style={paymentStyles.label}>Method</Text>
-              <Text style={paymentStyles.value}>{item.paymentMethod}</Text>
-            </View>
-            <View style={paymentStyles.row}>
-              <Text style={paymentStyles.label}>Date</Text>
-              <Text style={paymentStyles.value}>{new Date(item.paymentDate).toLocaleDateString()}</Text>
-            </View>
-            <View style={[paymentStyles.statusBadge, { backgroundColor: badgeColor(item.status) }]}>
-              <Text style={paymentStyles.statusText}>{item.status}</Text>
-            </View>
-          </TouchableOpacity>
+        renderItem={({ item }) => {
+          const badge = badgeColor(item.status);
+
+          return (
+            <TouchableOpacity
+              style={paymentStyles.card}
+              onPress={() => navigation.navigate('PaymentReceipt', { paymentId: item._id })}
+              activeOpacity={0.85}
+            >
+              <View style={paymentStyles.listCardHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={paymentStyles.listCardTitle}>{item.paymentMethod}</Text>
+                  <Text style={paymentStyles.listCardSubtitle}>
+                    Payment ID #{item._id?.slice(-6).toUpperCase()}
+                  </Text>
+                </View>
+
+                <View style={paymentStyles.statusBadge}>
+                  <View style={[paymentStyles.statusBadge, { backgroundColor: badge.backgroundColor }]}>
+                    <Text style={[paymentStyles.statusText, { color: badge.color }]}>{item.status}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={paymentStyles.row}>
+                <View style={paymentStyles.rowBlock}>
+                  <Text style={paymentStyles.label}>Amount</Text>
+                  <Text style={paymentStyles.amount}>${Number(item.amount || 0).toFixed(2)}</Text>
+                </View>
+                <View style={[paymentStyles.rowBlock, { alignItems: 'flex-end' }]}>
+                  <Text style={paymentStyles.label}>Date</Text>
+                  <Text style={paymentStyles.valueStrong}>{new Date(item.paymentDate).toLocaleDateString()}</Text>
+                  <Text style={paymentStyles.metaText}>
+                    {new Date(item.paymentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={paymentStyles.divider} />
+
+              <View style={paymentStyles.metaRow}>
+                <Text style={paymentStyles.metaText}>Booking: {item.bookingId?._id || item.bookingId || 'N/A'}</Text>
+                <Text style={paymentStyles.metaText}>Open receipt</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+        ListEmptyComponent={(
+          <View style={paymentStyles.emptyState}>
+            <Text style={paymentStyles.emptyTitle}>No payments found</Text>
+            <Text style={paymentStyles.emptyText}>Payments will appear here once you submit them.</Text>
+          </View>
         )}
-        ListEmptyComponent={<Text style={paymentStyles.emptyText}>No payments found.</Text>}
       />
     </View>
   );

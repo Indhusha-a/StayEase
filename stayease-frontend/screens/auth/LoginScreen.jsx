@@ -10,50 +10,48 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors]     = useState({});
 
   const validate = () => {
-    const nextErrors = {};
+    const next = {};
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail) {
-      nextErrors.email = 'Email is required';
+      next.email = 'Email is required';
     } else if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      nextErrors.email = 'Enter a valid email address';
+      next.email = 'Enter a valid email address';
     }
 
-    if (!password) {
-      nextErrors.password = 'Password is required';
-    }
+    if (!password) next.password = 'Password is required';
 
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
   const handleLogin = async () => {
     if (!validate()) return;
-
     try {
       setLoading(true);
       await login(email.trim(), password);
     } catch (err) {
       const message = err.response?.data?.message || 'Something went wrong';
       if (message === 'Incorrect password') {
-        setErrors((prev) => ({ ...prev, password: message }));
+        setErrors(prev => ({ ...prev, password: message }));
       } else if (
         message === 'No account found for this email' ||
         message === 'Invalid email format'
       ) {
-        setErrors((prev) => ({ ...prev, email: message }));
+        setErrors(prev => ({ ...prev, email: message }));
       }
       Alert.alert('Login Failed', message);
     } finally {
@@ -71,155 +69,200 @@ export default function LoginScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scroll}
       >
-        {/* Header */}
+
+        {/* ── Header ── */}
         <View style={s.header}>
-          <View style={s.logoBox}>
-            <View style={s.logoInner} />
+          <View style={s.iconCircle}>
+            <Text style={s.iconGlyph}>🏨</Text>
           </View>
-          <Text style={s.brand}>EasyStay</Text>
-          <Text style={s.title}>Welcome back</Text>
-          <Text style={s.subtitle}>Sign in to your account to continue.</Text>
+          <Text style={s.pageTitle}>Welcome back</Text>
+          <Text style={s.subtitle}>Sign in to manage your bookings</Text>
         </View>
 
-        {/* Card */}
+        {/* ── Form card ── */}
         <View style={s.card}>
 
           {/* Email */}
           <View style={s.fieldWrapper}>
-            <Text style={s.label}>Email Address</Text>
-            <TextInput
-              style={[s.input, !!errors.email && s.inputError]}
-              value={email}
-              onChangeText={(val) => {
-                setEmail(val);
-                if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
-              }}
-              placeholder="you@company.com"
-              placeholderTextColor="#B0B8C8"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            {!!errors.email && <Text style={s.error}>{errors.email}</Text>}
+            <Text style={s.label}>Email address</Text>
+            <View style={[s.inputRow, !!errors.email && s.inputError]}>
+              <Text style={s.inputIcon}>✉</Text>
+              <TextInput
+                style={s.textInput}
+                value={email}
+                onChangeText={val => {
+                  setEmail(val);
+                  if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
+                }}
+                placeholder="name@example.com"
+                placeholderTextColor="#747686"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+            {!!errors.email && <Text style={s.errorText}>{errors.email}</Text>}
           </View>
 
           {/* Password */}
           <View style={s.fieldWrapper}>
             <Text style={s.label}>Password</Text>
-            <View style={[s.passwordRow, !!errors.password && s.inputError]}>
+            <View style={[s.inputRow, !!errors.password && s.inputError]}>
+              <Text style={s.inputIcon}>🔒</Text>
               <TextInput
-                style={s.passwordInput}
+                style={s.textInput}
                 value={password}
-                onChangeText={(val) => {
+                onChangeText={val => {
                   setPassword(val);
-                  if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
+                  if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
                 }}
-                placeholder="Your password"
-                placeholderTextColor="#B0B8C8"
+                placeholder="••••••••"
+                placeholderTextColor="#747686"
                 secureTextEntry={!showPass}
                 autoCapitalize="none"
               />
               <TouchableOpacity
-                onPress={() => setShowPass((p) => !p)}
-                style={s.toggle}
+                onPress={() => setShowPass(p => !p)}
+                style={s.visibilityBtn}
               >
-                <Text style={s.toggleText}>{showPass ? 'Hide' : 'Show'}</Text>
+                <Text style={s.visibilityText}>{showPass ? 'Hide' : 'Show'}</Text>
               </TouchableOpacity>
             </View>
-            {!!errors.password && <Text style={s.error}>{errors.password}</Text>}
+            {!!errors.password && <Text style={s.errorText}>{errors.password}</Text>}
+            <TouchableOpacity style={s.forgotRow}>
+              <Text style={s.forgotText}>Forgot password?</Text>
+            </TouchableOpacity>
           </View>
 
+          {/* Sign in button */}
+          <TouchableOpacity
+            style={s.primaryBtn}
+            onPress={handleLogin}
+            disabled={loading}
+            activeOpacity={0.9}
+          >
+            {loading
+              ? <ActivityIndicator color="#ffffff" />
+              : <Text style={s.primaryBtnText}>Sign In</Text>
+            }
+          </TouchableOpacity>
+
           {/* Divider */}
-          <View style={s.divider} />
+          <View style={s.dividerRow}>
+            <View style={s.dividerLine} />
+            <Text style={s.dividerLabel}>or continue with</Text>
+            <View style={s.dividerLine} />
+          </View>
 
-          {/* Submit */}
-          <TouchableOpacity style={s.button} onPress={handleLogin} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={s.buttonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
+          {/* Social buttons */}
+          <View style={s.socialRow}>
+            <TouchableOpacity style={s.socialBtn} activeOpacity={0.85}>
+              <Text style={s.socialIcon}>G</Text>
+              <Text style={s.socialBtnText}>Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.socialBtn} activeOpacity={0.85}>
+              <Text style={s.socialIcon}></Text>
+              <Text style={s.socialBtnText}>Apple</Text>
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={s.link}>Don't have an account? Register</Text>
-          </TouchableOpacity>
+          {/* Register link */}
+          <View style={s.registerRow}>
+            <Text style={s.registerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={s.registerLink}>Create an account</Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
 
-        {/* Footer */}
-        <Text style={s.footer}>
-          By signing in you agree to our{' '}
-          <Text style={s.footerLink}>Terms of Service</Text> and{' '}
-          <Text style={s.footerLink}>Privacy Policy</Text>.
-        </Text>
+        {/* ── Hotel image card ── */}
+        <View style={s.hotelCard}>
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80' }}
+            style={s.hotelImage}
+            resizeMode="cover"
+          />
+          <View style={s.hotelCaption}>
+            <Text style={s.hotelCaptionText}>Inspired stays, tailored for you.</Text>
+          </View>
+        </View>
+
+        {/* ── Footer links ── */}
+        <View style={s.footer}>
+          <TouchableOpacity><Text style={s.footerLink}>Privacy Policy</Text></TouchableOpacity>
+          <Text style={s.footerDot}>·</Text>
+          <TouchableOpacity><Text style={s.footerLink}>Terms of Service</Text></TouchableOpacity>
+          <Text style={s.footerDot}>·</Text>
+          <TouchableOpacity><Text style={s.footerLink}>Help Center</Text></TouchableOpacity>
+        </View>
+        <Text style={s.copyright}>© 2024 EasyStay. All rights reserved.</Text>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+const PRIMARY       = '#0037b0';
+const SURFACE       = '#faf8ff';
+const SURFACE_HIGH  = '#e8e7f3';
+const SURFACE_LOW   = '#f3f2fe';
+const ON_SURFACE    = '#1a1b23';
+const ON_VARIANT    = '#434655';
+const OUTLINE       = '#747686';
+const OUTLINE_VAR   = '#c4c5d7';
+const ERROR         = '#ba1a1a';
+const WHITE         = '#ffffff';
+
 const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4FF',
+    backgroundColor: SURFACE,
   },
   scroll: {
     paddingHorizontal: 20,
+    paddingTop: 72,
     paddingBottom: 40,
   },
 
   // Header
   header: {
     alignItems: 'center',
-    paddingTop: 80,
-    paddingBottom: 28,
+    marginBottom: 28,
   },
-  logoBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#1D4ED8',
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: SURFACE_HIGH,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  logoInner: {
-    width: 14,
-    height: 14,
-    borderRadius: 3,
-    backgroundColor: '#fff',
+  iconGlyph: {
+    fontSize: 28,
   },
-  brand: {
-    fontSize: 15,
-    color: '#1D4ED8',
-    fontWeight: '600',
-    letterSpacing: -0.2,
-    marginBottom: 14,
-  },
-  title: {
-    fontSize: 22,
+  pageTitle: {
+    fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
-    letterSpacing: -0.4,
-    textAlign: 'center',
+    letterSpacing: -0.02 * 24,
+    color: ON_SURFACE,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B7280',
-    marginTop: 6,
+    fontWeight: '400',
+    color: ON_VARIANT,
     textAlign: 'center',
   },
 
   // Card
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 20,
+    backgroundColor: WHITE,
+    borderRadius: 16,
     padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.08)',
-    shadowColor: '#1D4ED8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 3,
+    borderWidth: 0.5,
+    borderColor: OUTLINE_VAR,
+    marginBottom: 24,
   },
 
   // Fields
@@ -227,99 +270,189 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    letterSpacing: 0.1,
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 14,
-    color: '#111827',
-    backgroundColor: '#FAFAFA',
-  },
-  inputError: {
-    borderColor: '#EF4444',
-  },
-  error: {
-    color: '#DC2626',
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: '600',
+    letterSpacing: 0.01 * 12,
+    color: ON_VARIANT,
+    marginBottom: 6,
+    paddingHorizontal: 2,
   },
-
-  // Password row
-  passwordRow: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 48,
+    backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    backgroundColor: '#FAFAFA',
-    overflow: 'hidden',
+    borderColor: OUTLINE_VAR,
+    borderRadius: 8,
+    paddingHorizontal: 12,
   },
-  passwordInput: {
+  inputError: {
+    borderColor: ERROR,
+  },
+  inputIcon: {
+    fontSize: 16,
+    color: OUTLINE,
+    marginRight: 10,
+    width: 20,
+    textAlign: 'center',
+  },
+  textInput: {
     flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
     fontSize: 14,
-    color: '#111827',
+    fontWeight: '400',
+    color: ON_SURFACE,
+    height: '100%',
   },
-  toggle: {
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+  visibilityBtn: {
+    paddingHorizontal: 4,
   },
-  toggleText: {
+  visibilityText: {
     fontSize: 13,
-    color: '#6B7280',
     fontWeight: '500',
+    color: OUTLINE,
+  },
+  errorText: {
+    fontSize: 12,
+    color: ERROR,
+    marginTop: 4,
+    paddingHorizontal: 2,
+  },
+  forgotRow: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+  },
+  forgotText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: PRIMARY,
+  },
+
+  // Primary button
+  primaryBtn: {
+    height: 48,
+    backgroundColor: PRIMARY,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  primaryBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: WHITE,
+    letterSpacing: 0.01 * 14,
   },
 
   // Divider
-  divider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
   },
+  dividerLine: {
+    flex: 1,
+    height: 0.5,
+    backgroundColor: OUTLINE_VAR,
+  },
+  dividerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: OUTLINE,
+    marginHorizontal: 12,
+  },
 
-  // Button
-  button: {
-    backgroundColor: '#1D4ED8',
-    borderRadius: 10,
-    paddingVertical: 13,
+  // Social
+  socialRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  socialBtn: {
+    flex: 1,
+    height: 48,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
-    shadowColor: '#1D4ED8',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 2,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: OUTLINE_VAR,
+    borderRadius: 8,
+    backgroundColor: WHITE,
+    gap: 8,
   },
-  buttonText: {
-    color: '#fff',
+  socialIcon: {
+    fontSize: 16,
     fontWeight: '700',
-    fontSize: 15,
+    color: ON_SURFACE,
   },
-  link: {
-    color: '#1D4ED8',
-    textAlign: 'center',
+  socialBtnText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: ON_SURFACE,
+  },
+
+  // Register
+  registerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  registerText: {
+    fontSize: 14,
+    color: ON_VARIANT,
+  },
+  registerLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: PRIMARY,
+  },
+
+  // Hotel image card
+  hotelCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: OUTLINE_VAR,
+    backgroundColor: WHITE,
+    marginBottom: 28,
+  },
+  hotelImage: {
+    width: '100%',
+    height: 160,
+  },
+  hotelCaption: {
+    padding: 12,
+    alignItems: 'center',
+  },
+  hotelCaptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: OUTLINE,
+    letterSpacing: 0.01 * 12,
   },
 
   // Footer
   footer: {
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#9CA3AF',
-    lineHeight: 18,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   footerLink: {
-    color: '#6B7280',
-    textDecorationLine: 'underline',
+    fontSize: 12,
+    fontWeight: '600',
+    color: ON_VARIANT,
+  },
+  footerDot: {
+    fontSize: 12,
+    color: OUTLINE,
+  },
+  copyright: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: OUTLINE,
+    textAlign: 'center',
   },
 });
