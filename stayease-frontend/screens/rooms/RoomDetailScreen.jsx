@@ -6,6 +6,12 @@ import {
 import api, { SERVER_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 
+const getRoomImageUri = (imagePath) => {
+  if (!imagePath) return '';
+  if (/^https?:\/\//i.test(imagePath)) return imagePath;
+  return `${SERVER_URL}/${imagePath.replace(/^\/+/, '')}`;
+};
+
 export default function RoomDetailScreen({ route, navigation }) {
   const { roomId } = route.params;
   const { user }   = useAuth();
@@ -75,6 +81,7 @@ export default function RoomDetailScreen({ route, navigation }) {
   const statusColor = room.availabilityStatus === 'available' ? '#10B981'
                     : room.availabilityStatus === 'booked'    ? '#EF4444'
                     : '#F59E0B';
+  const imageUri = getRoomImageUri(room.thumbnailImage);
 
    // Render filled/empty stars
   const renderStars = (rating) =>
@@ -85,9 +92,9 @@ export default function RoomDetailScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero image — uses SERVER_URL so it matches the same host as API calls */}
-        {room.thumbnailImage
-          ? <Image source={{ uri: `${SERVER_URL}/${room.thumbnailImage}` }} style={styles.hero} />
+        {/* Supports Cloudinary URLs and older local upload paths. */}
+        {imageUri
+          ? <Image source={{ uri: imageUri }} style={styles.hero} />
           : <View style={styles.heroPlaceholder}><Text style={{ fontSize: 64 }}>🛏️</Text></View>
         }
 
