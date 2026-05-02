@@ -98,14 +98,47 @@ function ReviewsScreen() {
 const StaffScreen = () => <Placeholder name="Staff" icon="??" />;
 const ComplaintsScreen = () => <Placeholder name="Complaints" icon="??" />;
 
-const TabIcon = ({ emoji, label, focused }) => (
-  <View style={{ alignItems: 'center' }}>
-    <Text style={{ fontSize: focused ? 22 : 18 }}>{emoji}</Text>
-    <Text style={{ fontSize: 10, color: focused ? '#1D4ED8' : '#9CA3AF', fontWeight: focused ? '700' : '400' }}>
-      {label}
-    </Text>
-  </View>
-);
+
+// Tab icon helper
+const TabIcon = ({ emoji, label, focused }) => {
+  return (
+    <View
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 56,
+        paddingHorizontal: 8,
+      }}
+    >
+      <Text style={{ fontSize: 20 }}>
+        {emoji}
+      </Text>
+
+      <Text
+        numberOfLines={1} // ✅ prevents wrap
+        style={{
+          marginTop: 4,
+          fontSize: 11,
+          fontWeight: focused ? '700' : '500',
+          color: focused ? '#1D4ED8' : '#9CA3AF',
+        }}
+      >
+        {label}
+      </Text>
+
+      {/* ✅ tiny active indicator */}
+      <View
+        style={{
+          marginTop: 4,
+          height: 3,
+          width: 18,
+          borderRadius: 99,
+          backgroundColor: focused ? '#1D4ED8' : 'transparent',
+        }}
+      />
+    </View>
+  );
+};
 
 function AuthStack() {
   return (
@@ -157,7 +190,7 @@ function MainTabs() {
       <Tab.Screen
         name="Reviews"
         component={ReviewsScreen}
-        options={{ title: 'Reviews', tabBarIcon: ({ focused }) => <TabIcon emoji="⭐" label="Reviews" focused={focused} /> }}
+        options={{ title: 'Reviews', tabBarIcon: ({ focused }) => <TabIcon emoji="📝" label="Reviews" focused={focused} /> }}
       />
       <Tab.Screen
         name="Payments"
