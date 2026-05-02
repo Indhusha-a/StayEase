@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import api from '../../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../../utils/api';
 import paymentStyles from './paymentStyles';
 
 const inferMimeType = (name = '') => {
@@ -10,6 +11,39 @@ const inferMimeType = (name = '') => {
   if (ext === 'png') return 'image/png';
   if (ext === 'pdf') return 'application/pdf';
   return 'application/octet-stream';
+};
+
+const MAX_SLIP_SIZE_BYTES = 5 * 1024 * 1024;
+
+const normalizeNativeUri = (uri = '') => {
+  if (!uri) return uri;
+  if (uri.startsWith('file://') || uri.startsWith('content://')) return uri;
+  return `file://${uri}`;
+};
+
+const uploadSlipRequest = async (formData) => {
+  const token = await AsyncStorage.getItem('token');
+  const response = await fetch(`${API_URL}/payments/upload-slip`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  let payload = null;
+
+  if (contentType.includes('application/json')) {
+    payload = await response.json();
+  } else {
+    const textPayload = await response.text();
+    payload = textPayload ? { message: textPayload } : {};
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.message || `Upload failed (${response.status})`);
+  }
+
+  return payload;
 };
 
 export default function BankTransferForm({
@@ -45,6 +79,11 @@ export default function BankTransferForm({
         return;
       }
 
+      if (file.size && file.size > MAX_SLIP_SIZE_BYTES) {
+        setError('Slip must be 5MB or smaller.');
+        return;
+      }
+
       setUploadingState(true);
 
       const formData = new FormData();
@@ -61,27 +100,22 @@ export default function BankTransferForm({
           formData.append('slip', blob, file.name || `slip-${Date.now()}`);
         }
       } else {
+        const normalizedUri = normalizeNativeUri(file.uri);
         formData.append('slip', {
-          uri: file.uri,
+          uri: normalizedUri,
           name: file.name || `slip-${Date.now()}`,
           type: file.mimeType || inferMimeType(file.name),
         });
       }
 
-      // On web, clear axios default JSON header so browser can set multipart boundary.
-      const requestConfig =
-        Platform.OS === 'web'
-          ? { headers: { 'Content-Type': undefined } }
-          : undefined;
-
-      const res = await api.post('/payments/upload-slip', formData, requestConfig);
+      const payload = await uploadSlipRequest(formData);
 
       onUploadSuccess?.({
-        slipUrl: res.data?.slipUrl || '',
-        fileName: res.data?.fileName || file.name || 'Uploaded slip',
+        slipUrl: payload?.slipUrl || '',
+        fileName: payload?.fileName || file.name || 'Uploaded slip',
       });
     } catch (err) {
-      setError(err.response?.data?.message || 'Unable to upload slip. Try again.');
+      setError(err?.message || 'Unable to upload slip. Try again.');
     } finally {
       setUploadingState(false);
     }
