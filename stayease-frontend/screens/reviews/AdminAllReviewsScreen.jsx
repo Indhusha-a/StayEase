@@ -58,9 +58,7 @@ export default function AdminAllReviewsScreen() {
       <Text style={styles.title}>{item.title}</Text>
       <Text style={styles.comment}>{item.comment}</Text>
       <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
-      <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item._id)}>
-        <Text style={styles.deleteText}>Delete Review</Text>
-      </TouchableOpacity>
+      
     </View>
   );
 
