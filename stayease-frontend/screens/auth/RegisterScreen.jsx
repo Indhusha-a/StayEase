@@ -10,97 +10,76 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  BlurView,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
-const passwordChecks = [
-  { test: (v) => v.length >= 8, message: 'At least 8 characters' },
-  { test: (v) => /[A-Z]/.test(v), message: 'At least 1 uppercase letter' },
-  { test: (v) => /[a-z]/.test(v), message: 'At least 1 lowercase letter' },
-  { test: (v) => /\d/.test(v), message: 'At least 1 number' },
-];
-
-const Field = ({ label, value, onChangeText, error, optional, ...props }) => (
-  <View style={s.fieldWrapper}>
-    <View style={s.labelRow}>
-      <Text style={s.label}>{label}</Text>
-      {optional && <Text style={s.optional}>(optional)</Text>}
-    </View>
-    <TextInput
-      style={[s.input, error && s.inputError]}
-      value={value}
-      onChangeText={onChangeText}
-      autoCapitalize="none"
-      placeholderTextColor="#B0B8C8"
-      {...props}
-    />
-    {error && <Text style={s.error}>{error}</Text>}
-  </View>
-);
-
 export default function RegisterScreen({ navigation }) {
-  const { register, checkEmailAvailability } = useAuth();
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [showPass, setShowPass] = useState(false);
-  const [errors, setErrors] = useState({});
+  const { register } = useAuth();
 
-  const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
+  const [fullName, setFullName]   = useState('');
+  const [email, setEmail]         = useState('');
+  const [phone, setPhone]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [showPass, setShowPass]   = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [errors, setErrors]       = useState({});
 
+  // ── Password strength ──────────────────────────────────────────────────
+  const checks = {
+    length:    password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number:    /[0-9]/.test(password),
+  };
+  const strengthScore = Object.values(checks).filter(Boolean).length; // 0-4
+
+  // ── Validation ─────────────────────────────────────────────────────────
   const validate = () => {
-    const e = {};
-    const name = form.name.trim();
-    const email = form.email.trim().toLowerCase();
-    const phone = form.phone.trim();
+    const next = {};
 
-    if (!name) e.name = 'Name is required';
-    else if (name.length < 2) e.name = 'Name must be at least 2 characters';
+    if (!fullName.trim())
+      next.fullName = 'Full name is required';
 
-    if (!email) e.email = 'Email is required';
-    else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = 'Valid email required';
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail)
+      next.email = 'Email is required';
+    else if (!/^\S+@\S+\.\S+$/.test(normalizedEmail))
+      next.email = 'Enter a valid email address';
 
-    if (phone && !/^\+?[0-9\s-]{7,15}$/.test(phone)) e.phone = 'Enter a valid phone number';
+    if (!phone.trim())
+      next.phone = 'Phone number is required';
 
-    const firstFailedPasswordRule = passwordChecks.find((rule) => !rule.test(form.password));
-    if (!form.password) e.password = 'Password is required';
-    else if (firstFailedPasswordRule) e.password = firstFailedPasswordRule.message;
+    if (!password)
+      next.password = 'Password is required';
+    else if (strengthScore < 3)
+      next.password = 'Password is too weak';
 
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
+  // ── Submit ─────────────────────────────────────────────────────────────
   const handleRegister = async () => {
     if (!validate()) return;
-
     try {
       setLoading(true);
-
-      const availability = await checkEmailAvailability(form.email.trim());
-      if (!availability.available) {
-        setErrors((prev) => ({ ...prev, email: 'This email is already taken' }));
-        return;
-      }
-
-      await register(form.name.trim(), form.email.trim(), form.password, form.phone.trim());
+      await register({ fullName: fullName.trim(), email: email.trim(), phone: phone.trim(), password });
     } catch (err) {
-      Alert.alert('Failed', err.response?.data?.message || 'Something went wrong');
+      const message = err.response?.data?.message || 'Something went wrong';
+      Alert.alert('Registration Failed', message);
     } finally {
       setLoading(false);
     }
   };
 
-  const passedPasswordChecks = passwordChecks.filter((rule) => rule.test(form.password)).length;
-  const strengthColor =
-    passedPasswordChecks <= 1 ? '#EF4444' : passedPasswordChecks <= 3 ? '#F59E0B' : '#10B981';
-  const strengthLabel =
-    passedPasswordChecks === 0
-      ? ''
-      : passedPasswordChecks <= 1
-      ? 'Weak'
-      : passedPasswordChecks <= 3
-      ? 'Fair'
-      : 'Strong';
+  // ── Strength bar color ─────────────────────────────────────────────────
+  const barColor = (index) => {
+    if (index >= strengthScore) return OUTLINE_VAR;
+    if (strengthScore <= 1) return ERROR;
+    if (strengthScore === 2) return '#854F0B';  // amber
+    if (strengthScore === 3) return '#3B6D11';  // green
+    return PRIMARY;                              // full = primary blue
+  };
 
   return (
     <KeyboardAvoidingView
@@ -112,341 +91,395 @@ export default function RegisterScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scroll}
       >
-        {/* Header */}
-        <View style={s.header}>
-          <View style={s.logoBox}>
-            <View style={s.logoInner} />
-          </View>
-          <Text style={s.brand}>EasyStay</Text>
-          <Text style={s.title}>Create your account</Text>
-          <Text style={s.subtitle}>Get started — it only takes a minute.</Text>
+
+        {/* ── Title section ── */}
+        <View style={s.titleSection}>
+          <Text style={s.h1}>Create your{'\n'}account</Text>
+          <Text style={s.subtitle}>
+            Join our community and start planning your perfect getaway today.
+          </Text>
         </View>
 
-        {/* Card */}
-        <View style={s.card}>
-          <Field
-            label="Full Name"
-            value={form.name}
-            onChangeText={set('name')}
-            error={errors.name}
+        {/* ── Full name ── */}
+        <View style={s.fieldWrapper}>
+          <Text style={s.label}>Full Name</Text>
+          <TextInput
+            style={[s.input, !!errors.fullName && s.inputError]}
+            value={fullName}
+            onChangeText={val => {
+              setFullName(val);
+              if (errors.fullName) setErrors(prev => ({ ...prev, fullName: '' }));
+            }}
             placeholder="John Doe"
+            placeholderTextColor={OUTLINE}
+            autoCapitalize="words"
           />
-          <Field
-            label="Email Address"
-            value={form.email}
-            onChangeText={set('email')}
-            error={errors.email}
-            placeholder="you@company.com"
+          {!!errors.fullName && <Text style={s.errorText}>{errors.fullName}</Text>}
+        </View>
+
+        {/* ── Email ── */}
+        <View style={s.fieldWrapper}>
+          <Text style={s.label}>Email</Text>
+          <TextInput
+            style={[s.input, !!errors.email && s.inputError]}
+            value={email}
+            onChangeText={val => {
+              setEmail(val);
+              if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
+            }}
+            placeholder="name@example.com"
+            placeholderTextColor={OUTLINE}
             keyboardType="email-address"
+            autoCapitalize="none"
           />
-          <Field
-            label="Phone Number"
-            value={form.phone}
-            onChangeText={set('phone')}
-            error={errors.phone}
-            placeholder="+94 77 123 4567"
-            keyboardType="phone-pad"
-            optional
-          />
+          {!!errors.email && <Text style={s.errorText}>{errors.email}</Text>}
+        </View>
 
-          {/* Password field */}
-          <View style={s.fieldWrapper}>
-            <Text style={s.label}>Password</Text>
-            <View style={[s.passwordRow, errors.password && s.inputError]}>
-              <TextInput
-                style={s.passwordInput}
-                value={form.password}
-                onChangeText={set('password')}
-                placeholder="Create a strong password"
-                placeholderTextColor="#B0B8C8"
-                secureTextEntry={!showPass}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setShowPass((p) => !p)} style={s.toggle}>
-                <Text style={s.toggleText}>{showPass ? 'Hide' : 'Show'}</Text>
-              </TouchableOpacity>
+        {/* ── Phone ── */}
+        <View style={s.fieldWrapper}>
+          <Text style={s.label}>Phone Number</Text>
+          <View style={[s.phoneRow, !!errors.phone && s.inputError]}>
+            <View style={s.phonePrefix}>
+              <Text style={s.phonePrefixText}>+1</Text>
             </View>
-            {errors.password && <Text style={s.error}>{errors.password}</Text>}
-
-            {/* Strength bar */}
-            {form.password.length > 0 && (
-              <>
-                <View style={s.strengthTrack}>
-                  {passwordChecks.map((_, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        s.strengthSegment,
-                        { backgroundColor: i < passedPasswordChecks ? strengthColor : '#E5E7EB' },
-                      ]}
-                    />
-                  ))}
-                </View>
-                {strengthLabel !== '' && (
-                  <Text style={[s.strengthLabel, { color: strengthColor }]}>
-                    {strengthLabel} password
-                  </Text>
-                )}
-
-                {/* Requirements checklist */}
-                <View style={s.checksGrid}>
-                  {passwordChecks.map((rule, i) => {
-                    const passed = rule.test(form.password);
-                    return (
-                      <View key={i} style={s.checkItem}>
-                        <View style={[s.checkDot, { backgroundColor: passed ? '#10B981' : '#D1D5DB' }]} />
-                        <Text style={[s.checkText, { color: passed ? '#374151' : '#9CA3AF' }]}>
-                          {rule.message}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </>
-            )}
+            <TextInput
+              style={s.phoneInput}
+              value={phone}
+              onChangeText={val => {
+                setPhone(val);
+                if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }));
+              }}
+              placeholder="(555) 000-0000"
+              placeholderTextColor={OUTLINE}
+              keyboardType="phone-pad"
+            />
           </View>
+          {!!errors.phone && <Text style={s.errorText}>{errors.phone}</Text>}
+        </View>
 
-          {/* Divider */}
-          <View style={s.divider} />
+        {/* ── Password ── */}
+        <View style={s.fieldWrapper}>
+          <Text style={s.label}>Password</Text>
+          <View style={[s.inputRow, !!errors.password && s.inputError]}>
+            <TextInput
+              style={s.textInput}
+              value={password}
+              onChangeText={val => {
+                setPassword(val);
+                if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
+              }}
+              placeholder="••••••••"
+              placeholderTextColor={OUTLINE}
+              secureTextEntry={!showPass}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              onPress={() => setShowPass(p => !p)}
+              style={s.visibilityBtn}
+            >
+              <Text style={s.visibilityText}>{showPass ? 'Hide' : 'Show'}</Text>
+            </TouchableOpacity>
+          </View>
+          {!!errors.password && <Text style={s.errorText}>{errors.password}</Text>}
 
-          {/* Submit */}
-          <TouchableOpacity style={s.button} onPress={handleRegister} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={s.buttonText}>Create Account</Text>
-            )}
-          </TouchableOpacity>
+          {/* Strength bars */}
+          {password.length > 0 && (
+            <View style={s.strengthSection}>
+              <View style={s.barsRow}>
+                {[0, 1, 2, 3].map(i => (
+                  <View
+                    key={i}
+                    style={[s.bar, { backgroundColor: barColor(i) }]}
+                  />
+                ))}
+              </View>
 
+              {/* Checklist */}
+              <View style={s.checkGrid}>
+                {[
+                  { key: 'length',    label: '8+ characters' },
+                  { key: 'uppercase', label: 'Uppercase letter' },
+                  { key: 'lowercase', label: 'Lowercase letter' },
+                  { key: 'number',    label: 'One number' },
+                ].map(({ key, label }) => (
+                  <View key={key} style={s.checkItem}>
+                    <View style={[
+                      s.checkDot,
+                      checks[key] ? s.checkDotActive : s.checkDotInactive
+                    ]} />
+                    <Text style={[
+                      s.checkLabel,
+                      { color: checks[key] ? ON_SURFACE : OUTLINE }
+                    ]}>
+                      {label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* ── Submit ── */}
+        <TouchableOpacity
+          style={s.primaryBtn}
+          onPress={handleRegister}
+          disabled={loading}
+          activeOpacity={0.9}
+        >
+          {loading
+            ? <ActivityIndicator color="#ffffff" />
+            : <Text style={s.primaryBtnText}>Create Account</Text>
+          }
+        </TouchableOpacity>
+
+        {/* ── Sign in redirect ── */}
+        <View style={s.signinRow}>
+          <Text style={s.signinText}>Already have an account? </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={s.link}>Already have an account? Sign in</Text>
+            <Text style={s.signinLink}>Sign in</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Footer */}
-        <Text style={s.footer}>
-          By creating an account you agree to our{' '}
-          <Text style={s.footerLink}>Terms of Service</Text> and{' '}
-          <Text style={s.footerLink}>Privacy Policy</Text>.
-        </Text>
+        {/* ── Footer ── */}
+        <View style={s.footer}>
+          <View style={s.footerLinks}>
+            <TouchableOpacity><Text style={s.footerLink}>Terms of Service</Text></TouchableOpacity>
+            <TouchableOpacity><Text style={s.footerLink}>Privacy Policy</Text></TouchableOpacity>
+          </View>
+          <Text style={s.copyright}>© 2024 EASYSTAY INTERNATIONAL</Text>
+        </View>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+const PRIMARY     = '#0037b0';
+const SURFACE     = '#faf8ff';
+const SEC_CONT    = '#d0e1fb';
+const ON_SEC_CONT = '#54647a';
+const ON_SURFACE  = '#1a1b23';
+const ON_VARIANT  = '#434655';
+const OUTLINE     = '#747686';
+const OUTLINE_VAR = '#c4c5d7';
+const ERROR       = '#ba1a1a';
+const WHITE       = '#ffffff';
+
 const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4FF',
+    backgroundColor: SURFACE,
   },
   scroll: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingTop: 88,
+    paddingBottom: 48,
   },
 
-  // Header
-  header: {
-    alignItems: 'center',
-    paddingTop: 64,
-    paddingBottom: 28,
+  // Title
+  titleSection: {
+    marginBottom: 32,
   },
-  logoBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#1D4ED8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  logoInner: {
-    width: 14,
-    height: 14,
-    borderRadius: 3,
-    backgroundColor: '#fff',
-  },
-  brand: {
-    fontSize: 15,
-    color: '#1D4ED8',
-    fontWeight: '600',
-    letterSpacing: -0.2,
-    marginBottom: 14,
-  },
-  title: {
-    fontSize: 22,
+  h1: {
+    fontSize: 36,
     fontWeight: '700',
-    color: '#111827',
-    letterSpacing: -0.4,
-    textAlign: 'center',
+    letterSpacing: -0.02 * 36,
+    color: ON_SURFACE,
+    lineHeight: 44,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 6,
-    textAlign: 'center',
-  },
-
-  // Card
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.08)',
-    // iOS shadow
-    shadowColor: '#1D4ED8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    // Android
-    elevation: 3,
+    fontSize: 16,
+    fontWeight: '400',
+    color: ON_VARIANT,
+    lineHeight: 24,
   },
 
   // Fields
   fieldWrapper: {
-    marginBottom: 16,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
+    marginBottom: 20,
   },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: ON_VARIANT,
+    marginBottom: 6,
+    marginLeft: 2,
     letterSpacing: 0.1,
   },
-  optional: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '400',
-  },
   input: {
+    height: 48,
+    backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 14,
-    color: '#111827',
-    backgroundColor: '#FAFAFA',
+    borderColor: OUTLINE_VAR,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: ON_SURFACE,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: ERROR,
   },
-  error: {
-    color: '#DC2626',
+  errorText: {
     fontSize: 12,
+    color: ERROR,
     marginTop: 4,
+    marginLeft: 2,
+  },
+
+  // Phone
+  phoneRow: {
+    flexDirection: 'row',
+    height: 48,
+    borderWidth: 1,
+    borderColor: OUTLINE_VAR,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  phonePrefix: {
+    backgroundColor: SEC_CONT,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRightWidth: 1,
+    borderRightColor: OUTLINE_VAR,
+  },
+  phonePrefixText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: ON_SEC_CONT,
+    letterSpacing: 0.1,
+  },
+  phoneInput: {
+    flex: 1,
+    backgroundColor: WHITE,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: ON_SURFACE,
   },
 
   // Password row
-  passwordRow: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 48,
+    backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    backgroundColor: '#FAFAFA',
-    overflow: 'hidden',
+    borderColor: OUTLINE_VAR,
+    borderRadius: 8,
+    paddingHorizontal: 16,
   },
-  passwordInput: {
+  textInput: {
     flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 14,
-    color: '#111827',
+    fontSize: 16,
+    color: ON_SURFACE,
+    height: '100%',
   },
-  toggle: {
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+  visibilityBtn: {
+    paddingLeft: 8,
   },
-  toggleText: {
+  visibilityText: {
     fontSize: 13,
-    color: '#6B7280',
     fontWeight: '500',
+    color: OUTLINE,
   },
 
   // Strength
-  strengthTrack: {
+  strengthSection: {
+    marginTop: 12,
+  },
+  barsRow: {
     flexDirection: 'row',
-    gap: 4,
-    marginTop: 10,
-    marginBottom: 4,
+    gap: 6,
+    marginBottom: 12,
   },
-  strengthSegment: {
+  bar: {
     flex: 1,
-    height: 4,
-    borderRadius: 2,
+    height: 6,
+    borderRadius: 999,
   },
-  strengthLabel: {
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  checksGrid: {
+  checkGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 4,
   },
   checkItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     width: '47%',
   },
   checkDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
   },
-  checkText: {
+  checkDotActive: {
+    backgroundColor: PRIMARY,
+  },
+  checkDotInactive: {
+    backgroundColor: OUTLINE_VAR,
+  },
+  checkLabel: {
     fontSize: 11,
-  },
-
-  // Divider
-  divider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginBottom: 16,
+    fontWeight: '600',
   },
 
   // Button
-  button: {
-    backgroundColor: '#1D4ED8',
-    borderRadius: 10,
-    paddingVertical: 13,
+  primaryBtn: {
+    height: 48,
+    backgroundColor: PRIMARY,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 14,
-    shadowColor: '#1D4ED8',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 2,
+    justifyContent: 'center',
+    marginBottom: 24,
   },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  link: {
-    color: '#1D4ED8',
-    textAlign: 'center',
+  primaryBtnText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: WHITE,
+    letterSpacing: 0.1,
+  },
+
+  // Sign in
+  signinRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 40,
+  },
+  signinText: {
+    fontSize: 16,
+    color: ON_VARIANT,
+  },
+  signinLink: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: PRIMARY,
+    marginLeft: 2,
   },
 
   // Footer
   footer: {
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#9CA3AF',
-    lineHeight: 18,
+    alignItems: 'center',
+    gap: 12,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    gap: 24,
   },
   footerLink: {
-    color: '#6B7280',
+    fontSize: 12,
+    fontWeight: '600',
+    color: ON_VARIANT,
     textDecorationLine: 'underline',
+  },
+  copyright: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: OUTLINE,
+    letterSpacing: 0.1,
+    textTransform: 'uppercase',
   },
 });

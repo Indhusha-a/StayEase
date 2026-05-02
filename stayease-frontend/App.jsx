@@ -98,50 +98,6 @@ function ReviewsScreen() {
 const StaffScreen = () => <Placeholder name="Staff" icon="??" />;
 const ComplaintsScreen = () => <Placeholder name="Complaints" icon="??" />;
 
-const Stack = createStackNavigator();
-const Tab   = createBottomTabNavigator();
-
-// Tab icon helper
-const TabIcon = ({ emoji, label, focused }) => {
-  return (
-    <View
-      style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: 56,
-        paddingHorizontal: 8,
-      }}
-    >
-      <Text style={{ fontSize: 20 }}>
-        {emoji}
-      </Text>
-
-      <Text
-        numberOfLines={1} // ✅ prevents wrap
-        style={{
-          marginTop: 4,
-          fontSize: 11,
-          fontWeight: focused ? '700' : '500',
-          color: focused ? '#1D4ED8' : '#9CA3AF',
-        }}
-      >
-        {label}
-      </Text>
-
-      {/* ✅ tiny active indicator */}
-      <View
-        style={{
-          marginTop: 4,
-          height: 3,
-          width: 18,
-          borderRadius: 99,
-          backgroundColor: focused ? '#1D4ED8' : 'transparent',
-        }}
-      />
-    </View>
-  );
-};
-
 const TabIcon = ({ emoji, label, focused }) => (
   <View style={{ alignItems: 'center' }}>
     <Text style={{ fontSize: focused ? 22 : 18 }}>{emoji}</Text>
