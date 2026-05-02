@@ -1,7 +1,22 @@
 const express = require('express');
+const { protect, authorizeRoles } = require('../../middleware/authMiddleware');
+const upload = require('../../middleware/uploadMiddleware');
+const {
+  addStaff,
+  getAllStaff,
+  getStaffById,
+  updateStaff,
+  deleteStaff,
+  uploadStaffPhoto,
+} = require('./staffController');
+
 const router = express.Router();
 
-// Placeholder — Member 1 will replace this with full routes
-router.get('/', (req, res) => res.json({ message: 'Staff routes coming soon' }));
+router.post('/', protect, authorizeRoles('admin'), addStaff);
+router.get('/', protect, authorizeRoles('admin'), getAllStaff);
+router.get('/:id', protect, authorizeRoles('admin', 'staff'), getStaffById);
+router.put('/:id', protect, authorizeRoles('admin'), updateStaff);
+router.delete('/:id', protect, authorizeRoles('admin'), deleteStaff);
+router.post('/:id/photo', protect, authorizeRoles('admin'), upload.single('photo'), uploadStaffPhoto);
 
 module.exports = router;
