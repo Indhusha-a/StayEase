@@ -147,34 +147,34 @@ function MainTabs() {
       <Tab.Screen
         name="Rooms"
         component={RoomsScreen}
-        options={{ title: 'Browse Rooms', tabBarIcon: ({ focused }) => <TabIcon emoji="???" label="Rooms" focused={focused} /> }}
+        options={{ title: 'Browse Rooms', tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" label="Rooms" focused={focused} /> }}
       />
       <Tab.Screen
         name="Bookings"
         component={BookingsScreen}
-        options={{ title: 'My Bookings', tabBarIcon: ({ focused }) => <TabIcon emoji="??" label="Book" focused={focused} /> }}
+        options={{ title: 'My Bookings', tabBarIcon: ({ focused }) => <TabIcon emoji="📅" label="Book" focused={focused} /> }}
       />
       <Tab.Screen
         name="Reviews"
         component={ReviewsScreen}
-        options={{ title: 'Reviews', tabBarIcon: ({ focused }) => <TabIcon emoji="?" label="Reviews" focused={focused} /> }}
+        options={{ title: 'Reviews', tabBarIcon: ({ focused }) => <TabIcon emoji="⭐" label="Reviews" focused={focused} /> }}
       />
       <Tab.Screen
         name="Payments"
         component={PaymentsStackScreen}
-        options={{ title: 'Payments', tabBarIcon: ({ focused }) => <TabIcon emoji="??" label="Pay" focused={focused} /> }}
+        options={{ title: 'Payments', tabBarIcon: ({ focused }) => <TabIcon emoji="💳" label="Pay" focused={focused} /> }}
       />
       {user?.role === 'admin' && (
         <Tab.Screen
           name="Staff"
           component={StaffScreen}
-          options={{ title: 'Staff', tabBarIcon: ({ focused }) => <TabIcon emoji="??" label="Staff" focused={focused} /> }}
+          options={{ title: 'Staff', tabBarIcon: ({ focused }) => <TabIcon emoji="👥" label="Staff" focused={focused} /> }}
         />
       )}
       <Tab.Screen
         name="Complaints"
         component={ComplaintsScreen}
-        options={{ title: 'Issues', tabBarIcon: ({ focused }) => <TabIcon emoji="??" label="Issues" focused={focused} /> }}
+        options={{ title: 'Issues', tabBarIcon: ({ focused }) => <TabIcon emoji="🛠️" label="Issues" focused={focused} /> }}
       />
     </Tab.Navigator>
   );
