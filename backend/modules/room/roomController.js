@@ -1,5 +1,31 @@
-const Room   = require('./roomModel');
-const path   = require('path');
+const Room = require('./roomModel');
+const fs = require('fs');
+const cloudinary = require('../../config/cloudinary');
+
+const uploadRoomImage = async (file) => {
+  if (!file) return '';
+
+  const uploadResult = await cloudinary.uploader.upload(file.path, {
+    folder: 'stayease/rooms',
+    resource_type: 'image',
+    use_filename: true,
+    unique_filename: true,
+  });
+
+  return uploadResult.secure_url;
+};
+
+const removeLocalFile = (file) => {
+  if (file?.path && fs.existsSync(file.path)) {
+    fs.unlink(file.path, () => {});
+  }
+};
+
+const cloudinaryReady = () => (
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
 
 // POST /api/rooms — admin creates a room
 const createRoom = async (req, res) => {
@@ -8,8 +34,13 @@ const createRoom = async (req, res) => {
     if (!roomNumber || !pricePerNight || !capacity)
       return res.status(400).json({ message: 'Room number, price and capacity are required' });
 
-    // If an image was uploaded, save the relative file path
-    const thumbnailImage = req.file ? req.file.path.replace(/\\/g, '/') : '';
+    if (!req.file)
+      return res.status(400).json({ message: 'Room image is required' });
+
+    if (!cloudinaryReady())
+      return res.status(500).json({ message: 'Cloudinary is not configured on the server' });
+
+    const thumbnailImage = await uploadRoomImage(req.file);
 
     const room = await Room.create({
       roomNumber, roomType, pricePerNight: Number(pricePerNight),
@@ -20,6 +51,8 @@ const createRoom = async (req, res) => {
     res.status(201).json(room);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  } finally {
+    removeLocalFile(req.file);
   }
 };
 
@@ -54,7 +87,13 @@ const getRoomById = async (req, res) => {
 const updateRoom = async (req, res) => {
   try {
     const updates = { ...req.body };
-    if (req.file) updates.thumbnailImage = req.file.path.replace(/\\/g, '/');
+    if (req.file) {
+      if (!cloudinaryReady())
+        return res.status(500).json({ message: 'Cloudinary is not configured on the server' });
+
+      updates.thumbnailImage = await uploadRoomImage(req.file);
+    }
+
     if (updates.amenities && !Array.isArray(updates.amenities))
       updates.amenities = [updates.amenities];
 
@@ -63,6 +102,8 @@ const updateRoom = async (req, res) => {
     res.status(200).json(room);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  } finally {
+    removeLocalFile(req.file);
   }
 };
 

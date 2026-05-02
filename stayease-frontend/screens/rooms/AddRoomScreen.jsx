@@ -60,6 +60,9 @@ export default function AddRoomScreen({ navigation }) {
     if (!form.roomNumber || !form.pricePerNight || !form.capacity)
       return Alert.alert('Missing Fields', 'Room number, price and capacity are required.');
 
+    if (!image)
+      return Alert.alert('Missing Image', 'Please select a room image before creating the room.');
+
     try {
       setLoading(true);
       const data = new FormData();
@@ -173,9 +176,10 @@ const styles = StyleSheet.create({
   label:            { fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.5 },
   input:            { backgroundColor: '#F9FAFB', borderRadius: 12, padding: 14, fontSize: 14, color: '#111', borderWidth: 1, borderColor: '#D1D5DB', marginBottom: 2 },
   chipRow:          { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-  chip:             { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#D1D5DB' },
+  // Wider chips keep Android from clipping labels on compact screens.
+  chip:             { minWidth: 84, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#D1D5DB', alignItems: 'center' },
   chipActive:       { backgroundColor: '#1D4ED8', borderColor: '#1D4ED8' },
-  chipText:         { fontSize: 13, color: '#6B7280', fontWeight: '600' },
+  chipText:         { fontSize: 13, color: '#6B7280', fontWeight: 'bold', includeFontPadding: false },
   chipTextActive:   { color: '#fff' },
   imagePicker:      { borderRadius: 14, overflow: 'hidden', marginBottom: 4, borderWidth: 1.5, borderColor: '#D1D5DB', borderStyle: 'dashed' },
   imagePlaceholder: { height: 130, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' },

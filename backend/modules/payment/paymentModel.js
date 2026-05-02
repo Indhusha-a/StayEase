@@ -27,6 +27,11 @@ const paymentSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+    slipUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     notes: {
       type: String,
       trim: true,
