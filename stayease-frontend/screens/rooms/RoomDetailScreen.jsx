@@ -11,6 +11,9 @@ export default function RoomDetailScreen({ route, navigation }) {
   const { user }   = useAuth();
   const [room, setRoom]       = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews]       = useState([]);
+  const [avgRating, setAvgRating]   = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
 
   // Slide-up animation for the white detail card
   const slideAnim = useRef(new Animated.Value(60)).current;
@@ -18,6 +21,7 @@ export default function RoomDetailScreen({ route, navigation }) {
 
   useEffect(() => {
     fetchRoom();
+    fetchReviews();
   }, []);
 
   const fetchRoom = async () => {
@@ -36,6 +40,20 @@ export default function RoomDetailScreen({ route, navigation }) {
     }
   };
 
+
+  const fetchReviews = async () => {
+    try {
+      const res = await api.get(`/reviews/room/${roomId}`);
+      setReviews(res.data.reviews || []);
+      setAvgRating(res.data.averageRating || 0);
+      setReviewCount(res.data.count || 0);
+    } catch (err) {
+      // Reviews failing shouldn't break the whole screen
+      setReviews([]);
+    }
+  };
+
+  
   // Admin: confirm then delete this room
   const handleDelete = () => {
     Alert.alert('Delete Room', `Delete Room ${room.roomNumber}?`, [
@@ -57,6 +75,12 @@ export default function RoomDetailScreen({ route, navigation }) {
   const statusColor = room.availabilityStatus === 'available' ? '#10B981'
                     : room.availabilityStatus === 'booked'    ? '#EF4444'
                     : '#F59E0B';
+
+   // Render filled/empty stars
+  const renderStars = (rating) =>
+    [1, 2, 3, 4, 5].map((s) => (
+      <Text key={s} style={{ fontSize: 14, color: s <= rating ? '#F59E0B' : '#D1D5DB' }}>★</Text>
+    ));
 
   return (
     <View style={styles.container}>
@@ -114,6 +138,41 @@ export default function RoomDetailScreen({ route, navigation }) {
             ))}
           </View>
 
+          {/* ── REVIEWS SECTION ── */}
+          <Text style={styles.sectionTitle}>Guest Reviews</Text>
+
+          {/* Average rating summary */}
+          <View style={styles.ratingBox}>
+            <Text style={styles.ratingNumber}>{avgRating > 0 ? avgRating.toFixed(1) : '—'}</Text>
+            <View>
+              <View style={{ flexDirection: 'row', marginBottom: 4 }}>
+                {renderStars(Math.round(avgRating))}
+              </View>
+              <Text style={styles.ratingCount}>
+                {reviewCount === 0 ? 'No reviews yet' : `${reviewCount} review${reviewCount > 1 ? 's' : ''}`}
+              </Text>
+            </View>
+          </View>
+
+          {/* Recent reviews list — show max 3 */}
+          {reviews.slice(0, 3).map((review) => (
+            <View key={review._id} style={styles.reviewCard}>
+              <View style={styles.reviewHeader}>
+                <Text style={styles.reviewerName}>{review.userId?.name || 'Guest'}</Text>
+                <View style={{ flexDirection: 'row' }}>
+                  {renderStars(review.rating)}
+                </View>
+              </View>
+              <Text style={styles.reviewTitle}>{review.title}</Text>
+              <Text style={styles.reviewComment}>{review.comment}</Text>
+              <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
+            </View>
+          ))}
+
+          {reviewCount === 0 && (
+            <Text style={styles.noReviews}>Be the first to review this room!</Text>
+          )}
+
           {/* Guests see Book button only when the room is available */}
           {user?.role === 'guest' && room.availabilityStatus === 'available' && (
             <TouchableOpacity
@@ -122,6 +181,16 @@ export default function RoomDetailScreen({ route, navigation }) {
               activeOpacity={0.85}
             >
               <Text style={styles.bookBtnText}>📅  Book This Room</Text>
+            </TouchableOpacity>
+          )}
+
+          {user?.role === 'guest' && (
+            <TouchableOpacity
+              style={styles.reviewBtn}
+              onPress={() => navigation.navigate('Reviews', { screen: 'SubmitReview', params: { roomId: room._id, roomNumber: room.roomNumber } })}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.reviewBtnText}>⭐  Write a Review</Text>
             </TouchableOpacity>
           )}
 
@@ -176,6 +245,18 @@ const styles = StyleSheet.create({
   amenityItem:      { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EFF6FF', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#BFDBFE' },
   amenityIcon:      { color: '#1D4ED8', fontWeight: 'bold', marginRight: 6, fontSize: 12 },
   amenityText:      { color: '#1D4ED8', fontSize: 13, fontWeight: 'bold' },
+  
+  ratingBox:        { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#FFFBEB', borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#FDE68A' },
+  ratingNumber:     { fontSize: 40, fontWeight: 'bold', color: '#F59E0B' },
+  ratingCount:      { fontSize: 12, color: '#6B7280' },
+  reviewCard:       { backgroundColor: '#F9FAFB', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB' },
+  reviewHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  reviewerName:     { fontSize: 14, fontWeight: 'bold', color: '#111827' },
+  reviewTitle:      { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 4 },
+  reviewComment:    { fontSize: 13, color: '#6B7280', lineHeight: 20, marginBottom: 6 },
+  reviewDate:       { fontSize: 11, color: '#9CA3AF' },
+  noReviews:        { textAlign: 'center', color: '#9CA3AF', fontSize: 13, marginBottom: 20, fontStyle: 'italic' },
+  
   bookBtn:          { backgroundColor: '#1D4ED8', borderRadius: 16, paddingVertical: 18, alignItems: 'center', shadowColor: '#1D4ED8', shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
   bookBtnText:      { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   adminRow:         { flexDirection: 'row', gap: 12 },
@@ -183,4 +264,6 @@ const styles = StyleSheet.create({
   editBtnText:      { color: '#1D4ED8', fontWeight: 'bold', fontSize: 14 },
   deleteBtn:        { flex: 1, backgroundColor: '#FEF2F2', borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1, borderColor: '#FECACA' },
   deleteBtnText:    { color: '#EF4444', fontWeight: 'bold', fontSize: 14 },
+  reviewBtn:        { backgroundColor: '#F59E0B', borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginTop: 12, elevation: 4 },
+  reviewBtnText:    { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });

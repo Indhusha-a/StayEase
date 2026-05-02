@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Payment = require('./paymentModel');
 
-// Reuse an existing Booking model when available.
+// Reuse the Booking model if it already exists.
 const Booking =
   mongoose.models.Booking ||
   mongoose.model(
@@ -26,6 +26,7 @@ const createPayment = async ({
   amount,
   paymentMethod,
   transactionReference,
+  slipUrl,
   notes,
   userId
 }) => {
@@ -61,6 +62,7 @@ const createPayment = async ({
     amount,
     paymentMethod,
     transactionReference,
+    slipUrl,
     notes
   });
 };
@@ -76,7 +78,7 @@ const getMyPayments = async (userId) =>
     .populate('bookingId')
     .sort({ paymentDate: -1 });
 
-// Only the payment owner or an admin can view a specific payment.
+// Allow only the payment owner or an admin to view a payment.
 const getPaymentById = async ({ paymentId, userId, userRole }) => {
   const payment = await Payment.findById(paymentId)
     .populate('bookingId')

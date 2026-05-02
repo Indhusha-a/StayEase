@@ -14,14 +14,38 @@ export const AuthProvider = ({ children }) => {
   const loadStoredAuth = async () => {
     try {
       const storedToken = await AsyncStorage.getItem('token');
-      const storedUser = await AsyncStorage.getItem('user');
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+      if (storedToken) {
         api.defaults.headers.common.Authorization = `Bearer ${storedToken}`;
+
+        const res = await api.get('/auth/me', {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+
+        const hydratedUser = {
+          id: res.data._id || res.data.id,
+          name: res.data.name,
+          email: res.data.email,
+          role: res.data.role,
+          phone: res.data.phone || '',
+        };
+
+        await AsyncStorage.setItem('token', storedToken);
+        await AsyncStorage.setItem('user', JSON.stringify(hydratedUser));
+
+        setToken(storedToken);
+        setUser(hydratedUser);
+      } else {
+        delete api.defaults.headers.common.Authorization;
+        setToken(null);
+        setUser(null);
       }
     } catch (e) {
       console.log('Auth load error:', e);
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      delete api.defaults.headers.common.Authorization;
+      setToken(null);
+      setUser(null);
     } finally {
       setLoading(false);
     }
