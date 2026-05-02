@@ -8,12 +8,6 @@ import { useAuth } from '../../context/AuthContext';
 
 const FILTERS = ['All', 'Single', 'Double', 'Suite', 'Deluxe'];
 
-const getRoomImageUri = (imagePath) => {
-  if (!imagePath) return '';
-  if (/^https?:\/\//i.test(imagePath)) return imagePath;
-  return `${SERVER_URL}/${imagePath.replace(/^\/+/, '')}`;
-};
-
 // Returns a color based on availability status
 const getStatusColor = (status) => {
   if (status === 'available') return '#10B981';
@@ -22,7 +16,7 @@ const getStatusColor = (status) => {
 };
 
 // Defined outside the screen so React never re-creates this component on re-render
-const RoomCard = ({ item, index, onPress , rating}) => {
+const RoomCard = ({ item, index, onPress }) => {
   const cardAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -35,7 +29,6 @@ const RoomCard = ({ item, index, onPress , rating}) => {
   }, []);
 
   const color = getStatusColor(item.availabilityStatus);
-  const imageUri = getRoomImageUri(item.thumbnailImage);
 
   return (
     <Animated.View
@@ -45,9 +38,9 @@ const RoomCard = ({ item, index, onPress , rating}) => {
       }}
     >
       <TouchableOpacity style={styles.card} onPress={() => onPress(item._id)} activeOpacity={0.9}>
-        {/* Supports Cloudinary URLs and older local upload paths. */}
-        {imageUri
-          ? <Image source={{ uri: imageUri }} style={styles.cardImage} />
+        {/* Room thumbnail — uses SERVER_URL so the path matches the backend */}
+        {item.thumbnailImage
+          ? <Image source={{ uri: `${SERVER_URL}/${item.thumbnailImage}` }} style={styles.cardImage} />
           : <View style={styles.cardImagePlaceholder}><Text style={{ fontSize: 36 }}>🛏️</Text></View>
         }
 
@@ -61,21 +54,6 @@ const RoomCard = ({ item, index, onPress , rating}) => {
           </View>
 
           <Text style={styles.roomType}>{item.roomType} Room · Floor {item.floor || 'N/A'}</Text>
-
-
-          {/* ── Star Rating ── */}
-          <View style={styles.ratingRow}>
-            {rating && rating.count > 0 ? (
-              <>
-                <Text style={styles.starFilled}>{'★'.repeat(Math.round(rating.avg))}</Text>
-                <Text style={styles.starEmpty}>{'★'.repeat(5 - Math.round(rating.avg))}</Text>
-                <Text style={styles.ratingText}>{rating.avg.toFixed(1)}</Text>
-                <Text style={styles.ratingCount}>({rating.count})</Text>
-              </>
-            ) : (
-              <Text style={styles.noRating}>No reviews yet</Text>
-            )}
-          </View>
 
           {/* Show first 3 amenities then a count pill for the rest */}
           <View style={styles.amenityRow}>
@@ -106,7 +84,6 @@ const RoomCard = ({ item, index, onPress , rating}) => {
 export default function RoomListScreen({ navigation }) {
   const { user } = useAuth();
   const [rooms, setRooms]           = useState([]);
-  const [rating, setRating]         = useState({}); // { roomId: { avg, count } }
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch]         = useState('');
@@ -128,25 +105,7 @@ export default function RoomListScreen({ navigation }) {
   const fetchRooms = async () => {
     try {
       const res = await api.get('/rooms');
-      const roomList = res.data;
-      setRooms(roomList);
-
-      // Fetch ratings for all rooms in parallel
-      const ratingResults = await Promise.allSettled(
-        roomList.map(r => api.get(`/reviews/room/${r._id}`))
-      );
-
-      const ratingMap = {};
-      ratingResults.forEach((result, i) => {
-        if (result.status === 'fulfilled') {
-          ratingMap[roomList[i]._id] = {
-            avg: result.value.data.averageRating || 0,
-            count: result.value.data.count || 0,
-          };
-        }
-      });
-      setRating(ratingMap);
-
+      setRooms(res.data);
     } catch (err) {
       console.error('Failed to fetch rooms:', err.message);
     } finally {
@@ -220,7 +179,7 @@ export default function RoomListScreen({ navigation }) {
         data={filtered}
         keyExtractor={r => r._id}
         renderItem={({ item, index }) => (
-          <RoomCard item={item} index={index} onPress={handleCardPress} rating={rating[item._id]} />
+          <RoomCard item={item} index={index} onPress={handleCardPress} />
         )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -306,11 +265,4 @@ const styles = StyleSheet.create({
                         },
   fabText:              { color: '#fff', fontSize: 28, fontWeight: '300', lineHeight: 32 },
   emptyText:            { color: '#9CA3AF', fontSize: 15, marginTop: 10 },
-
-  ratingRow:   { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  starFilled:  { color: '#F59E0B', fontSize: 13 },
-  starEmpty:   { color: '#D1D5DB', fontSize: 13 },
-  ratingText:  { fontSize: 12, fontWeight: 'bold', color: '#374151', marginLeft: 4 },
-  ratingCount: { fontSize: 11, color: '#9CA3AF', marginLeft: 3 },
-  noRating:    { fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' },
 });

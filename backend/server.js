@@ -4,7 +4,14 @@ const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
 
-dotenv.config({ path: path.join(__dirname, '.env') });
+const envPath = path.resolve(__dirname, '.env');
+const dotenvResult = dotenv.config();
+
+if (dotenvResult.error) {
+  console.warn(`dotenv: failed to load .env, trying ${envPath}`);
+  dotenv.config({ path: envPath });
+}
+
 connectDB();
 
 const app = express();

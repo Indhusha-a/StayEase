@@ -26,7 +26,6 @@ const createPayment = async ({
   amount,
   paymentMethod,
   transactionReference,
-  slipUrl,
   notes,
   userId
 }) => {
@@ -62,7 +61,6 @@ const createPayment = async ({
     amount,
     paymentMethod,
     transactionReference,
-    slipUrl,
     notes
   });
 };
@@ -88,7 +86,8 @@ const getPaymentById = async ({ paymentId, userId, userRole }) => {
     throw makeError('Payment not found', 404);
   }
 
-  const isOwner = payment.userId._id.toString() === userId.toString();
+  const ownerId = payment.userId._id || payment.userId;
+  const isOwner = ownerId.toString() === userId.toString();
   const isAdmin = userRole === 'admin';
 
   if (!isOwner && !isAdmin) {
