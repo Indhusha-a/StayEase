@@ -62,8 +62,25 @@ export const AuthProvider = ({ children }) => {
     return u;
   };
 
-  const register = async (name, email, password, phone) => {
-    const res = await api.post('/auth/register', { name, email, password, phone, role: 'guest' });
+  const register = async (input) => {
+    const payload =
+      input && typeof input === 'object'
+        ? {
+            name: input.name || input.fullName || '',
+            email: input.email || '',
+            password: input.password || '',
+            phone: input.phone || '',
+            role: 'guest',
+          }
+        : {
+            name: '',
+            email: '',
+            password: '',
+            phone: '',
+            role: 'guest',
+          };
+
+    const res = await api.post('/auth/register', payload);
     const { token: t, user: u } = res.data;
     await AsyncStorage.setItem('token', t);
     await AsyncStorage.setItem('user', JSON.stringify(u));
