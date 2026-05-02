@@ -6,14 +6,16 @@ export const SERVER_URL = API_URL.replace(/\/api$/, '');
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' },
   timeout: 10000, // fail fast — don't hang forever
 });
 
 // Attach token on every request without each screen touching AsyncStorage
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
