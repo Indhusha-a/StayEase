@@ -156,7 +156,7 @@ export default function BookingDetailScreen({ route, navigation }) {
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Text style={{ color: '#6B7280' }}>Price Per Night</Text>
-            <Text style={{ fontWeight: '600', color: '#1F2937' }}>PKR {booking.roomId.pricePerNight}</Text>
+            <Text style={{ fontWeight: '600', color: '#1F2937' }}>$ {booking.roomId.pricePerNight}</Text>
           </View>
         </View>
       </View>
@@ -203,7 +203,7 @@ export default function BookingDetailScreen({ route, navigation }) {
         <View style={{ backgroundColor: '#EFF6FF', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#1D4ED8' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#1D4ED8' }}>Total</Text>
-            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1D4ED8' }}>PKR {booking.totalPrice}</Text>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1D4ED8' }}>$ {booking.totalPrice}</Text>
           </View>
         </View>
       </View>
