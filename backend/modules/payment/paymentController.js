@@ -122,6 +122,17 @@ const updatePaymentStatus = async (req, res) => {
   }
 };
 
+// Delete a paid or refunded payment.
+const deletePayment = async (req, res) => {
+  try {
+    await PaymentService.deletePayment({ paymentId: req.params.id });
+    return res.json({ message: 'Payment deleted successfully' });
+  } catch (error) {
+    const statusCode = error.status || 500;
+    return res.status(statusCode).json({ message: error.message });
+  }
+};
+
 // Get payment summary stats.
 const getPaymentStats = async (_req, res) => {
   try {
@@ -141,5 +152,6 @@ module.exports = {
   getMyPayments,
   getPaymentById,
   updatePaymentStatus,
+  deletePayment,
   getPaymentStats
 };

@@ -8,6 +8,7 @@ const {
   getMyPayments,
   getPaymentById,
   updatePaymentStatus,
+  deletePayment,
   getPaymentStats
 } = require('./paymentController');
 
@@ -34,5 +35,6 @@ router.get('/my', protect, authorizeRoles('guest'), getMyPayments);
 router.get('/stats', protect, authorizeRoles('admin'), getPaymentStats);
 router.get('/:id', protect, getPaymentById);
 router.put('/:id/status', protect, authorizeRoles('admin'), updatePaymentStatus);
+router.delete('/:id', protect, authorizeRoles('admin'), deletePayment);
 
 module.exports = router;
