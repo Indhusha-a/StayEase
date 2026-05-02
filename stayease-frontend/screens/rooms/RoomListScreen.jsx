@@ -8,6 +8,12 @@ import { useAuth } from '../../context/AuthContext';
 
 const FILTERS = ['All', 'Single', 'Double', 'Suite', 'Deluxe'];
 
+const getRoomImageUri = (imagePath) => {
+  if (!imagePath) return '';
+  if (/^https?:\/\//i.test(imagePath)) return imagePath;
+  return `${SERVER_URL}/${imagePath.replace(/^\/+/, '')}`;
+};
+
 // Returns a color based on availability status
 const getStatusColor = (status) => {
   if (status === 'available') return '#10B981';
@@ -29,6 +35,7 @@ const RoomCard = ({ item, index, onPress , rating}) => {
   }, []);
 
   const color = getStatusColor(item.availabilityStatus);
+  const imageUri = getRoomImageUri(item.thumbnailImage);
 
   return (
     <Animated.View
@@ -38,9 +45,9 @@ const RoomCard = ({ item, index, onPress , rating}) => {
       }}
     >
       <TouchableOpacity style={styles.card} onPress={() => onPress(item._id)} activeOpacity={0.9}>
-        {/* Room thumbnail — uses SERVER_URL so the path matches the backend */}
-        {item.thumbnailImage
-          ? <Image source={{ uri: `${SERVER_URL}/${item.thumbnailImage}` }} style={styles.cardImage} />
+        {/* Supports Cloudinary URLs and older local upload paths. */}
+        {imageUri
+          ? <Image source={{ uri: imageUri }} style={styles.cardImage} />
           : <View style={styles.cardImagePlaceholder}><Text style={{ fontSize: 36 }}>🛏️</Text></View>
         }
 
