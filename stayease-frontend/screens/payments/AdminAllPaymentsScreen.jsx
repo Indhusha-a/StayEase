@@ -50,9 +50,10 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, compact }) => {
+const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, compact }) => {
   const isPaid = item.status === 'Paid';
   const isRefunded = item.status === 'Refunded';
+  const canDelete = isPaid || isRefunded;
   const hasSlip = Boolean(item.slipUrl);
   const amountColor = isRefunded ? ON_VARIANT : PRIMARY;
 
@@ -132,6 +133,16 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, compact }) => {
                 <Text style={s.actionDisabledText}>No Slip</Text>
               </View>
             )}
+
+            {canDelete ? (
+              <TouchableOpacity
+                style={[s.actionBtn, s.actionDelete, compact && s.actionBtnCompact, compact && s.actionBtnFill]}
+                onPress={() => onDeletePayment(item)}
+                activeOpacity={0.85}
+              >
+                <Text style={s.actionDeleteText}>Delete Payment</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
       </View>
@@ -206,6 +217,31 @@ export default function AdminAllPaymentsScreen({ navigation }) {
       Alert.alert('Update Failed', err.response?.data?.message || 'Unable to update status');
     }
   };
+
+  const deletePayment = useCallback(
+    (payment) => {
+      Alert.alert(
+        'Delete Payment',
+        `Delete this ${payment.status.toLowerCase()} payment? This action cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await api.delete(`/payments/${payment._id}`);
+                setPayments((prev) => prev.filter((row) => row._id !== payment._id));
+              } catch (err) {
+                Alert.alert('Delete Failed', err.response?.data?.message || 'Unable to delete payment');
+              }
+            },
+          },
+        ]
+      );
+    },
+    []
+  );
 
   const resolveSlipUrl = useCallback((rawUrl = '') => {
     if (!rawUrl) return '';
@@ -343,6 +379,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
             item={item}
             onUpdateStatus={updateStatus}
             onOpenSlip={openSlip}
+            onDeletePayment={deletePayment}
             compact={compact}
           />
         )}
@@ -440,6 +477,8 @@ const s = StyleSheet.create({
   actionRefundText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT, textAlign: 'center' },
   actionSlip: { borderWidth: 1, borderColor: PRIMARY, backgroundColor: 'transparent' },
   actionSlipText: { fontSize: 12, fontWeight: '600', color: PRIMARY, textAlign: 'center' },
+  actionDelete: { backgroundColor: '#dc2626' },
+  actionDeleteText: { fontSize: 12, fontWeight: '600', color: WHITE, textAlign: 'center' },
   actionDisabled: { backgroundColor: SURF_VAR, opacity: 0.4 },
   actionDisabledText: { fontSize: 12, fontWeight: '600', color: ON_VARIANT, textAlign: 'center' },
 

@@ -118,6 +118,19 @@ const updatePaymentStatus = async ({ paymentId, status }) => {
   return payment;
 };
 
+const deletePayment = async ({ paymentId }) => {
+  const payment = await Payment.findById(paymentId);
+  if (!payment) {
+    throw makeError('Payment not found', 404);
+  }
+
+  if (!['Paid', 'Refunded'].includes(payment.status)) {
+    throw makeError("Only payments with 'Paid' or 'Refunded' status can be deleted", 400);
+  }
+
+  await payment.deleteOne();
+};
+
 const getPaymentStats = async () => {
   const byStatus = await Payment.aggregate([
     {
@@ -148,5 +161,6 @@ module.exports = {
   getMyPayments,
   getPaymentById,
   updatePaymentStatus,
+  deletePayment,
   getPaymentStats
 };
