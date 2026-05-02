@@ -4,6 +4,7 @@ import {
   StyleSheet, Alert, ScrollView, ActivityIndicator,
 } from 'react-native';
 import api from '../../utils/api';
+import ReviewImageUploadField from './ReviewImageUploadField';
 
 export default function SubmitReviewScreen({ route, navigation }) {
   const { roomId, roomNumber } = route.params;
@@ -11,6 +12,9 @@ export default function SubmitReviewScreen({ route, navigation }) {
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState('');
   const [comment, setComment] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageFileName, setImageFileName] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
@@ -20,7 +24,13 @@ export default function SubmitReviewScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      await api.post('/reviews', { roomId, rating, title, comment });
+      await api.post('/reviews', {
+        roomId,
+        rating,
+        title,
+        comment,
+        imageUrl: imageUrl || undefined,
+      });
       Alert.alert('Success', 'Your review has been submitted!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
@@ -62,7 +72,25 @@ export default function SubmitReviewScreen({ route, navigation }) {
         numberOfLines={5}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+      <ReviewImageUploadField
+        imageUrl={imageUrl}
+        imageFileName={imageFileName}
+        onUploadingStateChange={setImageUploading}
+        onUploadSuccess={({ imageUrl: uploadedUrl, fileName }) => {
+          setImageUrl(uploadedUrl);
+          setImageFileName(fileName);
+        }}
+        onClearImage={() => {
+          setImageUrl('');
+          setImageFileName('');
+        }}
+      />
+
+      <TouchableOpacity
+        style={[styles.button, (loading || imageUploading) && styles.buttonDisabled]}
+        onPress={handleSubmit}
+        disabled={loading || imageUploading}
+      >
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
@@ -89,5 +117,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e', borderRadius: 8,
     padding: 15, alignItems: 'center', marginTop: 8,
   },
+  buttonDisabled: { opacity: 0.7 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

@@ -28,6 +28,11 @@ const reviewSchema = new mongoose.Schema(
       required: [true, 'Comment is required'],
       trim: true,
     },
+    imageUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     updatedAt: {
       type: Date,
     },

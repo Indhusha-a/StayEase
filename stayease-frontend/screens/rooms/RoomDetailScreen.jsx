@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Image,
   TouchableOpacity, ActivityIndicator, Animated, Alert,
@@ -12,6 +12,12 @@ const getRoomImageUri = (imagePath) => {
   return `${SERVER_URL}/${imagePath.replace(/^\/+/, '')}`;
 };
 
+const getReviewImageUri = (imagePath) => {
+  if (!imagePath) return '';
+  if (/^https?:\/\//i.test(imagePath)) return imagePath;
+  return `${SERVER_URL}/${imagePath.replace(/^\/+/, '')}`;
+};
+
 export default function RoomDetailScreen({ route, navigation }) {
   const { roomId } = route.params;
   const { user }   = useAuth();
@@ -20,17 +26,17 @@ export default function RoomDetailScreen({ route, navigation }) {
   const [reviews, setReviews]       = useState([]);
   const [avgRating, setAvgRating]   = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
+  const [reviewEligibility, setReviewEligibility] = useState({
+    loading: false,
+    canReview: false,
+    message: '',
+  });
 
   // Slide-up animation for the white detail card
   const slideAnim = useRef(new Animated.Value(60)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    fetchRoom();
-    fetchReviews();
-  }, []);
-
-  const fetchRoom = async () => {
+  const fetchRoom = useCallback(async () => {
     try {
       const res = await api.get(`/rooms/${roomId}`);
       setRoom(res.data);
@@ -38,26 +44,53 @@ export default function RoomDetailScreen({ route, navigation }) {
         Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
         Animated.timing(fadeAnim,  { toValue: 1, duration: 500, useNativeDriver: true }),
       ]).start();
-    } catch (err) {
+    } catch (_err) {
       Alert.alert('Error', 'Could not load room details');
       navigation.goBack();
     } finally {
       setLoading(false);
     }
-  };
+  }, [fadeAnim, navigation, roomId, slideAnim]);
 
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       const res = await api.get(`/reviews/room/${roomId}`);
       setReviews(res.data.reviews || []);
       setAvgRating(res.data.averageRating || 0);
       setReviewCount(res.data.count || 0);
-    } catch (err) {
+    } catch (_err) {
       // Reviews failing shouldn't break the whole screen
       setReviews([]);
     }
-  };
+  }, [roomId]);
+
+  const fetchReviewEligibility = useCallback(async () => {
+    setReviewEligibility({ loading: true, canReview: false, message: '' });
+
+    try {
+      const res = await api.get(`/reviews/eligibility/${roomId}`);
+      setReviewEligibility({
+        loading: false,
+        canReview: Boolean(res.data?.canReview),
+        message: res.data?.message || '',
+      });
+    } catch (err) {
+      setReviewEligibility({
+        loading: false,
+        canReview: false,
+        message: err.response?.data?.message || 'Review access becomes available after admin confirms your payment.',
+      });
+    }
+  }, [roomId]);
+
+  useEffect(() => {
+    fetchRoom();
+    fetchReviews();
+    if (user?.role === 'guest') {
+      fetchReviewEligibility();
+    }
+  }, [fetchReviewEligibility, fetchReviews, fetchRoom, user?.role]);
 
   
   // Admin: confirm then delete this room
@@ -172,6 +205,9 @@ export default function RoomDetailScreen({ route, navigation }) {
               </View>
               <Text style={styles.reviewTitle}>{review.title}</Text>
               <Text style={styles.reviewComment}>{review.comment}</Text>
+              {getReviewImageUri(review.imageUrl) ? (
+                <Image source={{ uri: getReviewImageUri(review.imageUrl) }} style={styles.reviewImage} />
+              ) : null}
               <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
             </View>
           ))}
@@ -191,7 +227,17 @@ export default function RoomDetailScreen({ route, navigation }) {
             </TouchableOpacity>
           )}
 
-          {user?.role === 'guest' && (
+          {user?.role === 'guest' && reviewEligibility.loading && (
+            <Text style={styles.reviewAvailabilityText}>Checking review access...</Text>
+          )}
+
+          {user?.role === 'guest' && !reviewEligibility.loading && !reviewEligibility.canReview && reviewEligibility.message ? (
+            <View style={styles.reviewNoticeCard}>
+              <Text style={styles.reviewNoticeText}>{reviewEligibility.message}</Text>
+            </View>
+          ) : null}
+
+          {user?.role === 'guest' && reviewEligibility.canReview && (
             <TouchableOpacity
               style={styles.reviewBtn}
               onPress={() => navigation.navigate('Reviews', { screen: 'SubmitReview', params: { roomId: room._id, roomNumber: room.roomNumber } })}
@@ -261,8 +307,19 @@ const styles = StyleSheet.create({
   reviewerName:     { fontSize: 14, fontWeight: 'bold', color: '#111827' },
   reviewTitle:      { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 4 },
   reviewComment:    { fontSize: 13, color: '#6B7280', lineHeight: 20, marginBottom: 6 },
+  reviewImage:      { width: '100%', height: 180, borderRadius: 10, marginBottom: 8, backgroundColor: '#E5E7EB' },
   reviewDate:       { fontSize: 11, color: '#9CA3AF' },
   noReviews:        { textAlign: 'center', color: '#9CA3AF', fontSize: 13, marginBottom: 20, fontStyle: 'italic' },
+  reviewAvailabilityText: { color: '#6B7280', fontSize: 13, marginBottom: 10, textAlign: 'center' },
+  reviewNoticeCard: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    padding: 14,
+    marginTop: 12,
+  },
+  reviewNoticeText: { color: '#9A3412', fontSize: 13, lineHeight: 19 },
   
   bookBtn:          { backgroundColor: '#1D4ED8', borderRadius: 16, paddingVertical: 18, alignItems: 'center', shadowColor: '#1D4ED8', shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
   bookBtnText:      { color: '#fff', fontWeight: 'bold', fontSize: 16 },
