@@ -1,31 +1,20 @@
 const PaymentService = require('./paymentService');
+const fs = require('fs');
+const cloudinary = require('../../config/cloudinary');
 
-// ---------------------------------------------------------------------------
-// Each controller method is a thin HTTP adapter:
-//   1. Extract what the service needs from req
-//   2. Call the service
-//   3. Map the result (or error) to an HTTP response
-//
-// Business logic lives entirely in paymentService.js — controllers should
-// not duplicate validation or database access.
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// @desc    Create a new payment for an approved booking
-// @route   POST /api/payments
-// @access  Private — Guest only
-// ---------------------------------------------------------------------------
+// Create a payment for an approved booking.
 const createPayment = async (req, res) => {
   try {
-    const { bookingId, amount, paymentMethod, transactionReference, notes } = req.body;
+    const { bookingId, amount, paymentMethod, transactionReference, slipUrl, notes } = req.body;
 
     const payment = await PaymentService.createPayment({
       bookingId,
       amount,
       paymentMethod,
       transactionReference,
+      slipUrl,
       notes,
-      userId: req.user._id  // Injected by auth middleware; never trust the request body
+      userId: req.user._id
     });
 
     return res.status(201).json(payment);
@@ -35,11 +24,50 @@ const createPayment = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Get all payments across all users
-// @route   GET /api/payments
-// @access  Private — Admin only
-// ---------------------------------------------------------------------------
+// Upload a bank transfer slip for guest payments.
+const uploadSlip = async (req, res) => {
+  let localFilePath = '';
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Slip file is required' });
+    }
+
+    const requiredKeys = [
+      'CLOUDINARY_CLOUD_NAME',
+      'CLOUDINARY_API_KEY',
+      'CLOUDINARY_API_SECRET'
+    ];
+    const missingKeys = requiredKeys.filter((key) => !process.env[key]);
+
+    if (missingKeys.length > 0) {
+      return res.status(500).json({
+        message: `Cloudinary is not configured on the server (missing: ${missingKeys.join(', ')})`
+      });
+    }
+
+    localFilePath = req.file.path;
+    const uploadResult = await cloudinary.uploader.upload(localFilePath, {
+      folder: 'stayease/slips',
+      resource_type: 'auto',
+      use_filename: true,
+      unique_filename: true
+    });
+
+    return res.json({
+      slipUrl: uploadResult.secure_url,
+      fileName: req.file.originalname
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to upload slip', error: error.message });
+  } finally {
+    if (localFilePath && fs.existsSync(localFilePath)) {
+      fs.unlink(localFilePath, () => {});
+    }
+  }
+};
+
+// Get all payments for admins.
 const getAllPayments = async (_req, res) => {
   try {
     const payments = await PaymentService.getAllPayments();
@@ -51,11 +79,7 @@ const getAllPayments = async (_req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Get all payments belonging to the logged-in guest
-// @route   GET /api/payments/my
-// @access  Private — Guest only
-// ---------------------------------------------------------------------------
+// Get payments for the logged-in user.
 const getMyPayments = async (req, res) => {
   try {
     const payments = await PaymentService.getMyPayments(req.user._id);
@@ -67,11 +91,7 @@ const getMyPayments = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Get a single payment by ID
-// @route   GET /api/payments/:id
-// @access  Private — Owner or Admin
-// ---------------------------------------------------------------------------
+// Get one payment by ID.
 const getPaymentById = async (req, res) => {
   try {
     const payment = await PaymentService.getPaymentById({
@@ -87,11 +107,7 @@ const getPaymentById = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Update a payment's status to Paid or Refunded
-// @route   PUT /api/payments/:id/status
-// @access  Private — Admin only
-// ---------------------------------------------------------------------------
+// Update a payment status.
 const updatePaymentStatus = async (req, res) => {
   try {
     const payment = await PaymentService.updatePaymentStatus({
@@ -106,11 +122,7 @@ const updatePaymentStatus = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// @desc    Get revenue summary grouped by payment status
-// @route   GET /api/payments/stats
-// @access  Private — Admin only
-// ---------------------------------------------------------------------------
+// Get payment summary stats.
 const getPaymentStats = async (_req, res) => {
   try {
     const summary = await PaymentService.getPaymentStats();
@@ -124,6 +136,7 @@ const getPaymentStats = async (_req, res) => {
 
 module.exports = {
   createPayment,
+  uploadSlip,
   getAllPayments,
   getMyPayments,
   getPaymentById,
