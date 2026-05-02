@@ -1,15 +1,18 @@
 const PaymentService = require('./paymentService');
+const fs = require('fs');
+const cloudinary = require('../../config/cloudinary');
 
 // Create a payment for an approved booking.
 const createPayment = async (req, res) => {
   try {
-    const { bookingId, amount, paymentMethod, transactionReference, notes } = req.body;
+    const { bookingId, amount, paymentMethod, transactionReference, slipUrl, notes } = req.body;
 
     const payment = await PaymentService.createPayment({
       bookingId,
       amount,
       paymentMethod,
       transactionReference,
+      slipUrl,
       notes,
       userId: req.user._id
     });
@@ -18,6 +21,49 @@ const createPayment = async (req, res) => {
   } catch (error) {
     const statusCode = error.status || 500;
     return res.status(statusCode).json({ message: error.message });
+  }
+};
+
+// Upload a bank transfer slip for guest payments.
+const uploadSlip = async (req, res) => {
+  let localFilePath = '';
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Slip file is required' });
+    }
+
+    const requiredKeys = [
+      'CLOUDINARY_CLOUD_NAME',
+      'CLOUDINARY_API_KEY',
+      'CLOUDINARY_API_SECRET'
+    ];
+    const missingKeys = requiredKeys.filter((key) => !process.env[key]);
+
+    if (missingKeys.length > 0) {
+      return res.status(500).json({
+        message: `Cloudinary is not configured on the server (missing: ${missingKeys.join(', ')})`
+      });
+    }
+
+    localFilePath = req.file.path;
+    const uploadResult = await cloudinary.uploader.upload(localFilePath, {
+      folder: 'stayease/slips',
+      resource_type: 'auto',
+      use_filename: true,
+      unique_filename: true
+    });
+
+    return res.json({
+      slipUrl: uploadResult.secure_url,
+      fileName: req.file.originalname
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to upload slip', error: error.message });
+  } finally {
+    if (localFilePath && fs.existsSync(localFilePath)) {
+      fs.unlink(localFilePath, () => {});
+    }
   }
 };
 
@@ -90,6 +136,7 @@ const getPaymentStats = async (_req, res) => {
 
 module.exports = {
   createPayment,
+  uploadSlip,
   getAllPayments,
   getMyPayments,
   getPaymentById,
