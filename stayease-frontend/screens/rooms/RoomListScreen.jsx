@@ -16,7 +16,7 @@ const getStatusColor = (status) => {
 };
 
 // Defined outside the screen so React never re-creates this component on re-render
-const RoomCard = ({ item, index, onPress }) => {
+const RoomCard = ({ item, index, onPress , rating}) => {
   const cardAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -55,6 +55,21 @@ const RoomCard = ({ item, index, onPress }) => {
 
           <Text style={styles.roomType}>{item.roomType} Room · Floor {item.floor || 'N/A'}</Text>
 
+
+          {/* ── Star Rating ── */}
+          <View style={styles.ratingRow}>
+            {rating && rating.count > 0 ? (
+              <>
+                <Text style={styles.starFilled}>{'★'.repeat(Math.round(rating.avg))}</Text>
+                <Text style={styles.starEmpty}>{'★'.repeat(5 - Math.round(rating.avg))}</Text>
+                <Text style={styles.ratingText}>{rating.avg.toFixed(1)}</Text>
+                <Text style={styles.ratingCount}>({rating.count})</Text>
+              </>
+            ) : (
+              <Text style={styles.noRating}>No reviews yet</Text>
+            )}
+          </View>
+
           {/* Show first 3 amenities then a count pill for the rest */}
           <View style={styles.amenityRow}>
             {(item.amenities || []).slice(0, 3).map((a, i) => (
@@ -84,6 +99,7 @@ const RoomCard = ({ item, index, onPress }) => {
 export default function RoomListScreen({ navigation }) {
   const { user } = useAuth();
   const [rooms, setRooms]           = useState([]);
+  const [rating, setRating]         = useState({}); // { roomId: { avg, count } }
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch]         = useState('');
@@ -105,7 +121,25 @@ export default function RoomListScreen({ navigation }) {
   const fetchRooms = async () => {
     try {
       const res = await api.get('/rooms');
-      setRooms(res.data);
+      const roomList = res.data;
+      setRooms(roomList);
+
+      // Fetch ratings for all rooms in parallel
+      const ratingResults = await Promise.allSettled(
+        roomList.map(r => api.get(`/reviews/room/${r._id}`))
+      );
+
+      const ratingMap = {};
+      ratingResults.forEach((result, i) => {
+        if (result.status === 'fulfilled') {
+          ratingMap[roomList[i]._id] = {
+            avg: result.value.data.averageRating || 0,
+            count: result.value.data.count || 0,
+          };
+        }
+      });
+      setRating(ratingMap);
+
     } catch (err) {
       console.error('Failed to fetch rooms:', err.message);
     } finally {
@@ -179,7 +213,7 @@ export default function RoomListScreen({ navigation }) {
         data={filtered}
         keyExtractor={r => r._id}
         renderItem={({ item, index }) => (
-          <RoomCard item={item} index={index} onPress={handleCardPress} />
+          <RoomCard item={item} index={index} onPress={handleCardPress} rating={rating[item._id]} />
         )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -265,4 +299,11 @@ const styles = StyleSheet.create({
                         },
   fabText:              { color: '#fff', fontSize: 28, fontWeight: '300', lineHeight: 32 },
   emptyText:            { color: '#9CA3AF', fontSize: 15, marginTop: 10 },
+
+  ratingRow:   { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  starFilled:  { color: '#F59E0B', fontSize: 13 },
+  starEmpty:   { color: '#D1D5DB', fontSize: 13 },
+  ratingText:  { fontSize: 12, fontWeight: 'bold', color: '#374151', marginLeft: 4 },
+  ratingCount: { fontSize: 11, color: '#9CA3AF', marginLeft: 3 },
+  noRating:    { fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' },
 });
