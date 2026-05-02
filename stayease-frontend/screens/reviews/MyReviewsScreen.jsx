@@ -1,11 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity,
+  View, Text, FlatList, TouchableOpacity, Image,
   StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import api from '../../utils/api';
-import { useAuth } from '../../context/AuthContext';
+import api, { SERVER_URL } from '../../utils/api';
+
+const getReviewImageUri = (imagePath) => {
+  if (!imagePath) return '';
+  if (/^https?:\/\//i.test(imagePath)) return imagePath;
+  return `${SERVER_URL}/${imagePath.replace(/^\/+/, '')}`;
+};
 
 const StarDisplay = ({ rating }) => (
   <Text style={styles.stars}>
@@ -14,7 +19,6 @@ const StarDisplay = ({ rating }) => (
 );
 
 export default function MyReviewsScreen({ navigation }) {
-  const { token } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,7 +27,7 @@ export default function MyReviewsScreen({ navigation }) {
     try {
       const res = await api.get('/reviews/my');
       setReviews(res.data.reviews);
-    } catch (err) {
+    } catch (_err) {
       Alert.alert('Error', 'Could not load your reviews');
     } finally {
       setLoading(false);
@@ -56,6 +60,9 @@ export default function MyReviewsScreen({ navigation }) {
       <StarDisplay rating={item.rating} />
       <Text style={styles.title}>{item.title}</Text>
       <Text style={styles.comment}>{item.comment}</Text>
+      {getReviewImageUri(item.imageUrl) ? (
+        <Image source={{ uri: getReviewImageUri(item.imageUrl) }} style={styles.reviewImage} />
+      ) : null}
       <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
       <View style={styles.actions}>
         <TouchableOpacity
@@ -77,7 +84,7 @@ export default function MyReviewsScreen({ navigation }) {
     <View style={styles.container}>
       <Text style={styles.heading}>My Reviews</Text>
       {reviews.length === 0 ? (
-        <Text style={styles.empty}>You haven't written any reviews yet.</Text>
+        <Text style={styles.empty}>You have not written any reviews yet.</Text>
       ) : (
         <FlatList
           data={reviews}
@@ -102,6 +109,7 @@ const styles = StyleSheet.create({
   stars: { fontSize: 20, color: '#f4a226', marginBottom: 6 },
   title: { fontSize: 16, fontWeight: 'bold', color: '#1a1a2e', marginBottom: 4 },
   comment: { fontSize: 14, color: '#444', marginBottom: 8 },
+  reviewImage: { width: '100%', height: 180, borderRadius: 10, marginBottom: 10, backgroundColor: '#E5E7EB' },
   date: { fontSize: 12, color: '#aaa', marginBottom: 10 },
   actions: { flexDirection: 'row', gap: 10 },
   editBtn: {
