@@ -6,6 +6,11 @@ import paymentStyles from './paymentStyles';
 import OnlinePayForm from './OnlinePayForm';
 import BankTransferForm from './BankTransferForm';
 
+// ---------------------------------------------------------------------------
+// METHODS
+// ---------------------------------------------------------------------------
+// Source of truth for the selectable payment-method cards.
+// ---------------------------------------------------------------------------
 const METHODS = [
   {
     key: 'Cash',
@@ -27,10 +32,19 @@ const METHODS = [
   }
 ];
 
+// Small helper used to simulate a short processing delay for demo card payments.
 const sleep = (ms) => new Promise((resolve) => {
   setTimeout(resolve, ms);
 });
 
+// ---------------------------------------------------------------------------
+// PaymentScreen
+// ---------------------------------------------------------------------------
+// Main guest payment screen for an approved booking.
+// It coordinates the shared submit flow plus the two child method forms:
+//   OnlinePayForm    -> card demo flow
+//   BankTransferForm -> slip upload flow
+// ---------------------------------------------------------------------------
 export default function PaymentScreen({ route, navigation }) {
   const booking = route.params?.booking || {};
   const bookingId = route.params?.bookingId || booking?._id;
@@ -45,8 +59,10 @@ export default function PaymentScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [processingOnlinePay, setProcessingOnlinePay] = useState(false);
 
+  // Readonly amount string reused in the hero and the disabled amount input.
   const amountText = useMemo(() => Number(amount || 0).toFixed(2), [amount]);
 
+  // Shared POST /payments request for all payment methods.
   const submitPayment = async ({
     methodOverride,
     referenceOverride,
@@ -78,6 +94,7 @@ export default function PaymentScreen({ route, navigation }) {
     }
   };
 
+  // Cash and bank transfer both use the outer "Submit Payment" button.
   const handleCashOrTransferSubmit = async () => {
     if (paymentMethod === 'Bank Transfer' && !slipUrl) {
       Alert.alert('Slip Required', 'Upload a transfer slip before submitting this payment.');
@@ -87,6 +104,7 @@ export default function PaymentScreen({ route, navigation }) {
     await submitPayment();
   };
 
+  // Online Pay adds a generated transaction reference before submitting.
   const handleOnlinePay = async () => {
     if (!bookingId) {
       Alert.alert('Missing booking', 'Booking ID is required to submit payment.');
@@ -112,11 +130,13 @@ export default function PaymentScreen({ route, navigation }) {
   return (
     <KeyboardAvoidingView style={paymentStyles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={paymentStyles.scroll}>
+        {/* Page header */}
         <View style={paymentStyles.header}>
           <Text style={paymentStyles.title}>Make Payment</Text>
           <Text style={paymentStyles.subtitle}>Complete payment for your approved booking.</Text>
         </View>
 
+        {/* Booking + amount summary hero */}
         <View style={paymentStyles.heroPanel}>
           <View style={paymentStyles.heroCircle1} />
           <View style={paymentStyles.heroCircle2} />
@@ -127,6 +147,7 @@ export default function PaymentScreen({ route, navigation }) {
           </Text>
         </View>
 
+        {/* Read-only booking details for context before payment */}
         <View style={paymentStyles.card}>
           <Text style={paymentStyles.sectionTitle}>Booking Summary</Text>
           <View style={paymentStyles.row}>
@@ -154,18 +175,20 @@ export default function PaymentScreen({ route, navigation }) {
         <View style={paymentStyles.card}>
           <Text style={paymentStyles.sectionTitle}>Payment Details</Text>
 
+          {/* Amount is fixed to the booking total and cannot be edited here */}
           <View style={paymentStyles.fieldWrapper}>
             <Text style={paymentStyles.label}>Amount</Text>
             <TextInput style={[paymentStyles.input, paymentStyles.inputReadonly]} editable={false} value={amountText} />
           </View>
 
+          {/* Selecting a method controls which child form and submit flow appears */}
           <View style={paymentStyles.fieldWrapper}>
             <Text style={paymentStyles.label}>Payment Method</Text>
             <View style={paymentStyles.methodCards}>
               {METHODS.map((method) => {
                 const isActive = paymentMethod === method.key;
-
                 return (
+                // Card press updates the local paymentMethod state only.
                 <TouchableOpacity
                   key={method.key}
                   style={[paymentStyles.methodCard, isActive && paymentStyles.methodCardActive]}
@@ -193,6 +216,31 @@ export default function PaymentScreen({ route, navigation }) {
             </View>
           </View>
 
+          {/*
+           * ─────────────────────────────────────────────────────────────────
+           * RENDERING SECTION 1 — Online Pay form (card details)
+           * ─────────────────────────────────────────────────────────────────
+           * Shown exclusively when the user selects "Online Pay".
+           *
+           * OnlinePayForm renders four inputs: card number, cardholder name,
+           * expiry (MM/YY), and CVV. It validates all fields internally before
+           * calling the onPayNow prop.
+           *
+           * onPayNow triggers handleOnlinePay() in this screen, which:
+           *   1. Simulates a 2-second processing delay (sleep(2000))
+           *   2. Auto-generates a unique transaction reference (TXN-timestamp-random)
+           *   3. Calls submitPayment() with methodOverride = 'Online Pay'
+           *      and referenceOverride = the generated reference
+           *
+           * The `processing` prop receives (processingOnlinePay || loading) so
+           * the button inside OnlinePayForm shows a spinner and is disabled
+           * during both the fake processing delay and the actual API call.
+           *
+           * Note: Cash and Bank Transfer use a separate "Submit Payment" button
+           * (Section 3 below). Online Pay manages its own submit button inside
+           * OnlinePayForm, which is why this section has no sibling button.
+           * ─────────────────────────────────────────────────────────────────
+           */}
           {paymentMethod === 'Online Pay' ? (
             <OnlinePayForm
               processing={processingOnlinePay || loading}
@@ -200,6 +248,41 @@ export default function PaymentScreen({ route, navigation }) {
             />
           ) : null}
 
+          {/*
+           * ─────────────────────────────────────────────────────────────────
+           * RENDERING SECTION 2 — Bank Transfer form (slip upload)
+           * ─────────────────────────────────────────────────────────────────
+           * Shown exclusively when the user selects "Bank Transfer".
+           *
+           * BankTransferForm lets the user pick a file (JPG, PNG, or PDF up
+           * to 5MB) using expo-document-picker. On selection it immediately
+           * POSTs the file as multipart/form-data to POST /payments/upload-slip,
+           * which runs it through Multer (saved locally) then uploads to
+           * Cloudinary, returning a secure URL.
+           *
+           * Props:
+           *   slipUrl / slipFileName  — controlled state held here in
+           *                             PaymentScreen so submitPayment() can
+           *                             read the URL when the guest submits.
+           *
+           *   onUploadSuccess         — called with { slipUrl, fileName } once
+           *                             Cloudinary responds; updates slipUrl and
+           *                             slipFileName state here.
+           *
+           *   onClearSlip             — resets both slipUrl and slipFileName to
+           *                             empty strings, allowing the guest to
+           *                             re-upload a different file.
+           *
+           *   onUploadingStateChange  — syncs the slipUploading boolean here so
+           *                             the Submit Payment button (Section 3)
+           *                             stays disabled while the upload is in
+           *                             flight, preventing an early submit before
+           *                             the Cloudinary URL is ready.
+           *
+           * If the guest presses Submit Payment (Section 3) without uploading,
+           * handleCashOrTransferSubmit() blocks with an alert: "Slip Required".
+           * ─────────────────────────────────────────────────────────────────
+           */}
           {paymentMethod === 'Bank Transfer' ? (
             <BankTransferForm
               slipUrl={slipUrl}
@@ -216,6 +299,11 @@ export default function PaymentScreen({ route, navigation }) {
             />
           ) : null}
 
+          {/*
+           * Transaction Reference input — hidden for Online Pay because the
+           * reference is auto-generated inside handleOnlinePay(). For Cash and
+           * Bank Transfer the guest may optionally enter one manually.
+           */}
           {paymentMethod !== 'Online Pay' ? (
             <View style={paymentStyles.fieldWrapper}>
               <Text style={paymentStyles.label}>Transaction Reference (Optional)</Text>
@@ -229,6 +317,7 @@ export default function PaymentScreen({ route, navigation }) {
             </View>
           ) : null}
 
+          {/* Optional free-form note stored with the payment record */}
           <View style={paymentStyles.fieldWrapper}>
             <Text style={paymentStyles.label}>Notes (Optional)</Text>
             <TextInput
@@ -241,6 +330,29 @@ export default function PaymentScreen({ route, navigation }) {
             />
           </View>
 
+          {/*
+           * ─────────────────────────────────────────────────────────────────
+           * RENDERING SECTION 3 — Submit Payment button (Cash + Bank Transfer)
+           * ─────────────────────────────────────────────────────────────────
+           * Hidden for Online Pay because OnlinePayForm (Section 1) contains
+           * its own "Pay Now" button. This button is only needed for Cash and
+           * Bank Transfer, which have no inner form component with a submit.
+           *
+           * Disabled states — the button is greyed out (opacity 0.72) when:
+           *   loading      — the POST /payments API call is in flight
+           *   slipUploading — a Bank Transfer slip upload to Cloudinary is still
+           *                   in progress (slipUrl not yet available)
+           *
+           * On press it calls handleCashOrTransferSubmit(), which:
+           *   • For Bank Transfer: checks slipUrl is non-empty, alerts if not
+           *   • For both methods:  calls submitPayment() → POST /payments
+           *                        → on success, navigates to PaymentReceiptScreen
+           *
+           * While loading is true the button body swaps from the "Submit
+           * Payment" label to an ActivityIndicator spinner so the guest knows
+           * the request is in flight.
+           * ─────────────────────────────────────────────────────────────────
+           */}
           {paymentMethod !== 'Online Pay' ? (
             <TouchableOpacity
               style={[paymentStyles.button, (loading || slipUploading) && paymentStyles.buttonDisabled]}
@@ -255,6 +367,7 @@ export default function PaymentScreen({ route, navigation }) {
               )}
             </TouchableOpacity>
           ) : null}
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

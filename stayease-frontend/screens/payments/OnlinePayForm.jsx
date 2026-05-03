@@ -2,21 +2,35 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import paymentStyles from './paymentStyles';
 
+// ---------------------------------------------------------------------------
+// onlyDigits
+// ---------------------------------------------------------------------------
+// Strips all non-numeric characters from card-related inputs.
+// ---------------------------------------------------------------------------
 const onlyDigits = (value = '') => value.replace(/\D/g, '');
 
+// Formats a 16-digit card number as groups of 4 for readability.
 const formatCardNumber = (value) => {
   const digits = onlyDigits(value).slice(0, 16);
   return digits.match(/.{1,4}/g)?.join(' ') || digits;
 };
 
+// Formats 4 digits into MM/YY display form.
 const formatExpiry = (value) => {
   const digits = onlyDigits(value).slice(0, 4);
   if (digits.length <= 2) return digits;
   return `${digits.slice(0, 2)}/${digits.slice(2)}`;
 };
 
+// Demo form validation: checks only the shape, not a real expiry date window.
 const isValidExpiry = (value) => /^(0[1-9]|1[0-2])\/\d{2}$/.test(value);
 
+// ---------------------------------------------------------------------------
+// OnlinePayForm
+// ---------------------------------------------------------------------------
+// Child form rendered by PaymentScreen for the "Online Pay" flow.
+// It owns local card-input state and only calls onPayNow() after validation.
+// ---------------------------------------------------------------------------
 export default function OnlinePayForm({ processing, onPayNow }) {
   const [cardNumber, setCardNumber] = useState('');
   const [cardholderName, setCardholderName] = useState('');
@@ -24,6 +38,7 @@ export default function OnlinePayForm({ processing, onPayNow }) {
   const [cvv, setCvv] = useState('');
   const [error, setError] = useState('');
 
+  // Returns the first validation error found, or an empty string if valid.
   const validate = () => {
     if (onlyDigits(cardNumber).length !== 16) {
       return 'Enter a valid 16-digit card number.';
@@ -45,6 +60,7 @@ export default function OnlinePayForm({ processing, onPayNow }) {
     return '';
   };
 
+  // Parent submit callback is only invoked after local validation passes.
   const handlePayNow = async () => {
     const validationError = validate();
     if (validationError) {
@@ -63,6 +79,7 @@ export default function OnlinePayForm({ processing, onPayNow }) {
         Demo flow only. Card details are not saved.
       </Text>
 
+      {/* Card number with live 4-digit spacing */}
       <View style={paymentStyles.fieldWrapper}>
         <Text style={paymentStyles.label}>Card Number</Text>
         <TextInput
@@ -76,6 +93,7 @@ export default function OnlinePayForm({ processing, onPayNow }) {
         />
       </View>
 
+      {/* Cardholder name stays as free text */}
       <View style={paymentStyles.fieldWrapper}>
         <Text style={paymentStyles.label}>Cardholder Name</Text>
         <TextInput
@@ -88,6 +106,7 @@ export default function OnlinePayForm({ processing, onPayNow }) {
         />
       </View>
 
+      {/* Expiry and CVV share one row like a checkout form */}
       <View style={paymentStyles.cardMetaRow}>
         <View style={[paymentStyles.fieldWrapper, paymentStyles.cardMetaBlock]}>
           <Text style={paymentStyles.label}>Expiry</Text>
@@ -117,8 +136,10 @@ export default function OnlinePayForm({ processing, onPayNow }) {
         </View>
       </View>
 
+      {/* Inline validation feedback */}
       {error ? <Text style={paymentStyles.fieldError}>{error}</Text> : null}
 
+      {/* Submit button state is controlled by the parent via `processing` */}
       <TouchableOpacity
         style={[paymentStyles.button, processing && paymentStyles.buttonDisabled]}
         onPress={handlePayNow}

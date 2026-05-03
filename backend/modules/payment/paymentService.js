@@ -1,7 +1,12 @@
 const mongoose = require('mongoose');
 const Payment = require('./paymentModel');
 
-// Reuse the Booking model if it already exists.
+// ---------------------------------------------------------------------------
+// Booking model fallback
+// ---------------------------------------------------------------------------
+// This service only needs enough Booking shape to validate ownership and
+// approval status before creating a payment.
+// ---------------------------------------------------------------------------
 const Booking =
   mongoose.models.Booking ||
   mongoose.model(
@@ -15,12 +20,24 @@ const Booking =
     )
   );
 
+// Helper for surfacing service-layer validation errors to the controller.
 const makeError = (message, status) => {
   const err = new Error(message);
   err.status = status;
   return err;
 };
 
+// ---------------------------------------------------------------------------
+// createPayment
+// ---------------------------------------------------------------------------
+// Validates the booking/payment combination before creating a new record.
+// Rules enforced here:
+//   - required fields must be present
+//   - amount must be greater than zero
+//   - booking must exist and be Approved
+//   - the authenticated guest must own the booking
+//   - only one payment record may exist per booking
+// ---------------------------------------------------------------------------
 const createPayment = async ({
   bookingId,
   amount,
@@ -67,12 +84,14 @@ const createPayment = async ({
   });
 };
 
+// Admin list: return every payment with booking + user details populated.
 const getAllPayments = async () =>
   Payment.find()
     .populate('bookingId')
     .populate('userId', 'name email role')
     .sort({ paymentDate: -1 });
 
+// Guest list: return only the signed-in user's payments.
 const getMyPayments = async (userId) =>
   Payment.find({ userId })
     .populate('bookingId')
@@ -98,6 +117,7 @@ const getPaymentById = async ({ paymentId, userId, userRole }) => {
   return payment;
 };
 
+// Admin-only workflow update for moving payments into final statuses.
 const updatePaymentStatus = async ({ paymentId, status }) => {
   if (!['Paid', 'Refunded'].includes(status)) {
     throw makeError("Status must be either 'Paid' or 'Refunded'", 400);
@@ -118,6 +138,7 @@ const updatePaymentStatus = async ({ paymentId, status }) => {
   return payment;
 };
 
+// Deletion is limited to completed/refunded payments to protect active records.
 const deletePayment = async ({ paymentId }) => {
   const payment = await Payment.findById(paymentId);
   if (!payment) {
@@ -131,6 +152,7 @@ const deletePayment = async ({ paymentId }) => {
   await payment.deleteOne();
 };
 
+// Aggregates totals per status for the admin revenue summary screen.
 const getPaymentStats = async () => {
   const byStatus = await Payment.aggregate([
     {

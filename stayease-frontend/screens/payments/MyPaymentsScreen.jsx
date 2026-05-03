@@ -5,18 +5,32 @@ import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import paymentStyles from './paymentStyles';
 
+// ---------------------------------------------------------------------------
+// badgeColor
+// ---------------------------------------------------------------------------
+// Maps a payment status to the badge colors used in the history cards.
+// ---------------------------------------------------------------------------
 const badgeColor = (status) => {
   if (status === 'Paid') return { backgroundColor: '#dcfce7', color: '#15803d' };
   if (status === 'Refunded') return { backgroundColor: '#f1f5f9', color: '#475569' };
   return { backgroundColor: '#fef3c7', color: '#b45309' };
 };
 
+// ---------------------------------------------------------------------------
+// MyPaymentsScreen
+// ---------------------------------------------------------------------------
+// Shared payment-history screen.
+// Guests load GET /payments/my, while admins load GET /payments.
+// Tapping any card opens the receipt/details screen for that payment.
+// ---------------------------------------------------------------------------
 export default function MyPaymentsScreen({ navigation }) {
   const { user } = useAuth();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Loads the correct payment list for the current role and also resets
+  // both loading states so the initial spinner and pull-to-refresh stay synced.
   const fetchPayments = async () => {
     try {
       const endpoint = user?.role === 'admin' ? '/payments' : '/payments/my';
@@ -36,6 +50,7 @@ export default function MyPaymentsScreen({ navigation }) {
     }, [user?.role])
   );
 
+  // Full-screen loader for the very first fetch.
   if (loading) {
     return (
       <View style={paymentStyles.centered}>
@@ -62,11 +77,13 @@ export default function MyPaymentsScreen({ navigation }) {
         }
         ListHeaderComponent={(
           <View>
+            {/* Role-aware heading copy */}
             <View style={paymentStyles.header}>
               <Text style={paymentStyles.title}>{user?.role === 'admin' ? 'All Payments' : 'My Payments'}</Text>
               <Text style={paymentStyles.subtitle}>Track payment history with status badges and receipt access.</Text>
             </View>
 
+            {/* Hero summary showing how many transactions were loaded */}
             <View style={paymentStyles.heroPanel}>
               <View style={paymentStyles.heroCircle1} />
               <View style={paymentStyles.heroCircle2} />
@@ -85,6 +102,7 @@ export default function MyPaymentsScreen({ navigation }) {
               onPress={() => navigation.navigate('PaymentReceipt', { paymentId: item._id })}
               activeOpacity={0.85}
             >
+              {/* Payment method, short id, and status badge */}
               <View style={paymentStyles.listCardHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={paymentStyles.listCardTitle}>{item.paymentMethod}</Text>
@@ -100,6 +118,7 @@ export default function MyPaymentsScreen({ navigation }) {
                 </View>
               </View>
 
+              {/* Amount plus payment date/time */}
               <View style={paymentStyles.row}>
                 <View style={paymentStyles.rowBlock}>
                   <Text style={paymentStyles.label}>Amount</Text>
@@ -116,6 +135,7 @@ export default function MyPaymentsScreen({ navigation }) {
 
               <View style={paymentStyles.divider} />
 
+              {/* Footer metadata kept lightweight because the whole card is tappable */}
               <View style={paymentStyles.metaRow}>
                 <Text style={paymentStyles.metaText}>Booking: {item.bookingId?._id || item.bookingId || 'N/A'}</Text>
                 <Text style={paymentStyles.metaText}>Open receipt</Text>
@@ -124,6 +144,7 @@ export default function MyPaymentsScreen({ navigation }) {
           );
         }}
         ListEmptyComponent={(
+          // Empty state shown after a successful fetch with zero results.
           <View style={paymentStyles.emptyState}>
             <Text style={paymentStyles.emptyTitle}>No payments found</Text>
             <Text style={paymentStyles.emptyText}>Payments will appear here once you submit them.</Text>
