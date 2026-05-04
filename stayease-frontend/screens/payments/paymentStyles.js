@@ -1,5 +1,11 @@
 import { StyleSheet } from 'react-native';
 
+// ---------------------------------------------------------------------------
+// Shared payment palette
+// ---------------------------------------------------------------------------
+// Centralizes the visual tokens used by the guest payment flow, history list,
+// receipt screen, and revenue summary cards.
+// ---------------------------------------------------------------------------
 const PRIMARY = '#0037b0';
 const PRIMARY_CONT = '#1d4ed8';
 const ON_PRI_CONT = '#cad3ff';
@@ -12,7 +18,13 @@ const OUTLINE_VAR = '#c4c5d7';
 const SURF_VAR = '#e2e1ed';
 const WHITE = '#ffffff';
 
+// ---------------------------------------------------------------------------
+// paymentStyles
+// ---------------------------------------------------------------------------
+// Shared style module for the payment feature.
+// ---------------------------------------------------------------------------
 const paymentStyles = StyleSheet.create({
+  // Screen-level wrappers
   container: {
     flex: 1,
     backgroundColor: SURFACE,
@@ -28,6 +40,8 @@ const paymentStyles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 24,
   },
+
+  // Page heading block
   header: {
     marginBottom: 20,
     gap: 6,
@@ -44,6 +58,8 @@ const paymentStyles = StyleSheet.create({
     color: ON_VARIANT,
     lineHeight: 24,
   },
+
+  // Decorative hero/stat banner
   heroPanel: {
     backgroundColor: ON_PRI_CONT,
     borderRadius: 16,
@@ -92,6 +108,8 @@ const paymentStyles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 20,
   },
+
+  // Shared white card surface
   card: {
     backgroundColor: WHITE,
     borderRadius: 12,
@@ -108,6 +126,8 @@ const paymentStyles = StyleSheet.create({
     color: ON_VARIANT,
     marginBottom: 12,
   },
+
+  // Basic label/value text helpers
   label: {
     fontSize: 13,
     fontWeight: '600',
@@ -143,6 +163,8 @@ const paymentStyles = StyleSheet.create({
     backgroundColor: SURF_VAR,
     marginVertical: 10,
   },
+
+  // Form controls
   fieldWrapper: {
     marginBottom: 14,
   },
@@ -173,6 +195,8 @@ const paymentStyles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
+
+  // Compact pill controls kept for smaller selection patterns
   pillGroup: {
     gap: 8,
   },
@@ -196,6 +220,8 @@ const paymentStyles = StyleSheet.create({
   pillTextActive: {
     color: PRIMARY_CONT,
   },
+
+  // Payment-method chooser cards
   methodCards: {
     gap: 10,
   },
@@ -248,6 +274,8 @@ const paymentStyles = StyleSheet.create({
     color: PRIMARY,
     opacity: 0.8,
   },
+
+  // Child form containers used by OnlinePayForm / BankTransferForm
   methodFormSection: {
     marginTop: 14,
     borderWidth: 1,
@@ -295,6 +323,8 @@ const paymentStyles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
+
+  // Slip-upload status widgets
   uploadBox: {
     borderWidth: 1,
     borderStyle: 'dashed',
@@ -331,6 +361,8 @@ const paymentStyles = StyleSheet.create({
     fontWeight: '700',
     color: PRIMARY,
   },
+
+  // Shared badges and empty-state styles
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -357,6 +389,8 @@ const paymentStyles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+
+  // Payment history list-card styles
   listCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -392,6 +426,8 @@ const paymentStyles = StyleSheet.create({
     fontSize: 12,
     color: ON_VARIANT,
   },
+
+  // Revenue summary and notes blocks
   amountCardValue: {
     fontSize: 28,
     fontWeight: '700',

@@ -3,18 +3,29 @@ import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import api from '../../utils/api';
 import paymentStyles from './paymentStyles';
 
+// ---------------------------------------------------------------------------
+// badgeColor
+// ---------------------------------------------------------------------------
+// Reuses the same status colors shown in the payment list.
+// ---------------------------------------------------------------------------
 const badgeColor = (status) => {
   if (status === 'Paid') return { backgroundColor: '#dcfce7', color: '#15803d' };
   if (status === 'Refunded') return { backgroundColor: '#f1f5f9', color: '#475569' };
   return { backgroundColor: '#fef3c7', color: '#b45309' };
 };
 
+// ---------------------------------------------------------------------------
+// PaymentReceiptScreen
+// ---------------------------------------------------------------------------
+// Fetches a single payment by id and renders a receipt-style detail view.
+// ---------------------------------------------------------------------------
 export default function PaymentReceiptScreen({ route }) {
   const { paymentId } = route.params;
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Reload if a different payment id is pushed into this route.
     const load = async () => {
       try {
         const res = await api.get(`/payments/${paymentId}`);
@@ -26,6 +37,7 @@ export default function PaymentReceiptScreen({ route }) {
     load();
   }, [paymentId]);
 
+  // First-load spinner while GET /payments/:id is in flight.
   if (loading) {
     return (
       <View style={paymentStyles.centered}>
@@ -46,11 +58,13 @@ export default function PaymentReceiptScreen({ route }) {
 
   return (
     <ScrollView style={paymentStyles.container} contentContainerStyle={paymentStyles.scroll}>
+      {/* Screen heading */}
       <View style={paymentStyles.header}>
         <Text style={paymentStyles.title}>Payment Receipt</Text>
         <Text style={paymentStyles.subtitle}>Full transaction details for this payment record.</Text>
       </View>
 
+      {/* Hero summary of the receipt total and payment id */}
       <View style={paymentStyles.heroPanel}>
         <View style={paymentStyles.heroCircle1} />
         <View style={paymentStyles.heroCircle2} />
@@ -63,6 +77,8 @@ export default function PaymentReceiptScreen({ route }) {
 
       <View style={paymentStyles.card}>
         <Text style={paymentStyles.sectionTitle}>Transaction Details</Text>
+
+        {/* Booking id on the left, status badge on the right */}
         <View style={paymentStyles.row}>
           <View style={paymentStyles.rowBlock}>
             <Text style={paymentStyles.label}>Booking ID</Text>
@@ -78,6 +94,7 @@ export default function PaymentReceiptScreen({ route }) {
 
         <View style={paymentStyles.divider} />
 
+        {/* Method and optional transaction reference */}
         <View style={paymentStyles.row}>
           <View style={paymentStyles.rowBlock}>
             <Text style={paymentStyles.label}>Method</Text>
@@ -89,6 +106,7 @@ export default function PaymentReceiptScreen({ route }) {
           </View>
         </View>
 
+        {/* Full submitted timestamp */}
         <View style={paymentStyles.row}>
           <View style={paymentStyles.rowBlock}>
             <Text style={paymentStyles.label}>Date</Text>
@@ -99,6 +117,7 @@ export default function PaymentReceiptScreen({ route }) {
 
       <View style={paymentStyles.card}>
         <Text style={paymentStyles.sectionTitle}>Notes</Text>
+        {/* Notes are optional, so show N/A when blank */}
         <View style={paymentStyles.notesBox}>
           <Text style={paymentStyles.value}>{payment.notes || 'N/A'}</Text>
         </View>

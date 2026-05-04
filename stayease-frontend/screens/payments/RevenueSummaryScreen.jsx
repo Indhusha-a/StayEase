@@ -5,6 +5,11 @@ import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import paymentStyles from './paymentStyles';
 
+// ---------------------------------------------------------------------------
+// AmountCard
+// ---------------------------------------------------------------------------
+// Reusable summary card for one payment-status bucket.
+// ---------------------------------------------------------------------------
 const AmountCard = ({ label, amount, hint }) => (
   <View style={paymentStyles.card}>
     <Text style={paymentStyles.sectionTitle}>{label}</Text>
@@ -13,12 +18,18 @@ const AmountCard = ({ label, amount, hint }) => (
   </View>
 );
 
+// ---------------------------------------------------------------------------
+// RevenueSummaryScreen
+// ---------------------------------------------------------------------------
+// Admin-only totals page powered by GET /payments/stats.
+// ---------------------------------------------------------------------------
 export default function RevenueSummaryScreen() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Loads the backend summary object for Paid / Pending / Refunded totals.
   const fetchStats = async () => {
     try {
       const res = await api.get('/payments/stats');
@@ -29,8 +40,10 @@ export default function RevenueSummaryScreen() {
     }
   };
 
+  // Refresh whenever navigation focuses this screen again.
   useFocusEffect(useCallback(() => { fetchStats(); }, []));
 
+  // Guard against accidental access from non-admin users.
   if (user?.role !== 'admin') {
     return (
       <View style={paymentStyles.centered}>
@@ -62,11 +75,13 @@ export default function RevenueSummaryScreen() {
         />
       }
     >
+      {/* Page intro */}
       <View style={paymentStyles.header}>
         <Text style={paymentStyles.title}>Revenue Summary</Text>
         <Text style={paymentStyles.subtitle}>Totals grouped by payment status.</Text>
       </View>
 
+      {/* High-level comparison between paid and pending totals */}
       <View style={paymentStyles.statsBanner}>
         <View style={paymentStyles.heroCircle1} />
         <View style={paymentStyles.heroCircle2} />
@@ -85,6 +100,7 @@ export default function RevenueSummaryScreen() {
         </View>
       </View>
 
+      {/* Full three-status breakdown */}
       <View style={paymentStyles.summaryGrid}>
         <AmountCard label="Total Paid" amount={stats?.Paid?.totalAmount} hint={`${stats?.Paid?.count || 0} payment records`} />
         <AmountCard label="Total Pending" amount={stats?.Pending?.totalAmount} hint={`${stats?.Pending?.count || 0} payment records`} />

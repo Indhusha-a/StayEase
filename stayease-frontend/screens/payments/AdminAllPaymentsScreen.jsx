@@ -16,6 +16,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import api, { SERVER_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 
+// ---------------------------------------------------------------------------
+// Local palette
+// ---------------------------------------------------------------------------
+// This screen keeps its own StyleSheet because the admin dashboard layout is
+// denser and more custom than the shared guest-payment screens.
+// ---------------------------------------------------------------------------
 const PRIMARY = '#0037b0';
 const PRIMARY_CONT = '#1d4ed8';
 const ON_PRI_CONT = '#cad3ff';
@@ -28,6 +34,7 @@ const OUTLINE_VAR = '#c4c5d7';
 const SURF_VAR = '#e2e1ed';
 const WHITE = '#ffffff';
 
+// Small avatar glyph used on each payment card.
 const PersonIcon = () => (
   <View style={s.personCircle}>
     <View style={s.personHead} />
@@ -35,6 +42,7 @@ const PersonIcon = () => (
   </View>
 );
 
+// Status badge used on admin payment cards.
 const StatusBadge = ({ status }) => {
   const config = {
     Paid: { bg: '#dcfce7', text: '#15803d', label: 'Paid' },
@@ -51,6 +59,12 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// ---------------------------------------------------------------------------
+// PaymentCard
+// ---------------------------------------------------------------------------
+// Renders one admin-facing payment row with status actions, slip access,
+// and optional deletion for completed/refunded records.
+// ---------------------------------------------------------------------------
 const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, smallPhone }) => {
   const isPaid = item.status === 'Paid';
   const isRefunded = item.status === 'Refunded';
@@ -73,10 +87,7 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, smallP
     <View style={s.card}>
       {/* Top row: avatar + info + amount */}
       <View style={s.cardTop}>
-        <View style={s.personCircle}>
-          <View style={s.personHead} />
-          <View style={s.personBody} />
-        </View>
+        <PersonIcon />
 
         <View style={s.cardMid}>
           <Text style={s.cardName} numberOfLines={1}>
@@ -175,6 +186,7 @@ const PaymentCard = ({ item, onUpdateStatus, onOpenSlip, onDeletePayment, smallP
   );
 };
 
+// Footer summary derived from the currently loaded payment collection.
 const AnalyticsBanner = ({ payments, smallPhone }) => {
   const totalPaid = payments.filter((p) => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
   const totalPending = payments.filter((p) => p.status === 'Pending').reduce((sum, p) => sum + p.amount, 0);
@@ -212,6 +224,11 @@ const AnalyticsBanner = ({ payments, smallPhone }) => {
   );
 };
 
+// ---------------------------------------------------------------------------
+// AdminAllPaymentsScreen
+// ---------------------------------------------------------------------------
+// Admin-only dashboard for reviewing and managing every payment in the system.
+// ---------------------------------------------------------------------------
 export default function AdminAllPaymentsScreen({ navigation }) {
   const { user } = useAuth();
   const { width, fontScale } = useWindowDimensions();
@@ -224,6 +241,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
 
+  // Pulls all payment records for the admin dashboard.
   const fetchPayments = useCallback(async () => {
     try {
       const res = await api.get('/payments');
@@ -242,6 +260,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
     }, [fetchPayments])
   );
 
+  // Sends the status change to PUT /payments/:id/status, then reloads the list.
   const updateStatus = async (paymentId, status) => {
     try {
       await api.put(`/payments/${paymentId}/status`, { status });
@@ -251,6 +270,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
     }
   };
 
+  // Deletion is double-confirmed because it permanently removes the record.
   const deletePayment = useCallback((payment) => {
     Alert.alert(
       'Delete Payment',
@@ -273,6 +293,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
     );
   }, []);
 
+  // Accepts either absolute URLs or server-relative paths from the API.
   const resolveSlipUrl = useCallback((rawUrl = '') => {
     if (!rawUrl) return '';
     if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
@@ -280,6 +301,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
     return `${SERVER_URL}/${rawUrl}`;
   }, []);
 
+  // For Cloudinary-hosted PDFs, build a preview image URL for page 1.
   const buildCloudinaryPdfPreviewUrl = useCallback((url = '') => {
     const isCloudinaryUrl = /res\.cloudinary\.com/i.test(url);
     const isPdf = /\.pdf(?:$|\?)/i.test(url);
@@ -291,6 +313,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
     return previewUrl.replace(/\.pdf(?=($|\?))/i, '.jpg');
   }, []);
 
+  // Opens either the original slip or a Cloudinary-generated PDF preview.
   const openSlip = useCallback(
     async (rawUrl) => {
       const slipUrl = resolveSlipUrl(rawUrl);
@@ -314,11 +337,13 @@ export default function AdminAllPaymentsScreen({ navigation }) {
     [buildCloudinaryPdfPreviewUrl, resolveSlipUrl]
   );
 
+  // Filter pills are client-side only; the full list is fetched once.
   const filteredPayments = useMemo(
     () => (activeFilter === 'All' ? payments : payments.filter((p) => p.status === activeFilter)),
     [payments, activeFilter]
   );
 
+  // Route guard in case a non-admin navigates here manually.
   if (user?.role !== 'admin') {
     return (
       <View style={s.centered}>
@@ -353,7 +378,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
         }
         ListHeaderComponent={
           <View>
-            {/* Hero */}
+            {/* Header hero + revenue-summary shortcut */}
             <View style={s.hero}>
               <View style={s.heroText}>
                 <Text style={[s.h1, smallPhone && s.h1Small]}>Admin Payments</Text>
@@ -373,7 +398,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {/* Filter bar */}
+            {/* Client-side status filter pills */}
             <View style={s.filterBar}>
               {!hideFilterLabel && <Text style={s.filterLabel}>FILTER BY:</Text>}
               {['All', 'Pending', 'Paid', 'Refunded'].map((filter) => (
@@ -398,6 +423,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
           </View>
         }
         ListEmptyComponent={
+          // Empty state respects the active filter selection.
           <View style={s.emptyState}>
             <Text style={s.emptyTitle}>No payments found</Text>
             <Text style={s.emptySubtitle}>
@@ -409,6 +435,7 @@ export default function AdminAllPaymentsScreen({ navigation }) {
         }
         ListFooterComponent={<AnalyticsBanner payments={payments} smallPhone={smallPhone} />}
         renderItem={({ item }) => (
+          // Each item stays self-contained so row actions are easy to scan/tap.
           <PaymentCard
             item={item}
             onUpdateStatus={updateStatus}

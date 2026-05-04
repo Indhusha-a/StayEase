@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+// Controller actions for payment CRUD, status updates, stats, and slip upload.
 const {
   createPayment,
   uploadSlip,
@@ -15,6 +16,14 @@ const {
 const { protect, authorizeRoles } = require('../../middleware/authMiddleware');
 const paymentSlipUpload = require('../../middleware/paymentSlipUploadMiddleware');
 
+// ---------------------------------------------------------------------------
+// handleSlipUpload
+// ---------------------------------------------------------------------------
+// Wraps the Multer middleware so upload validation failures return a clean
+// JSON response instead of bubbling into a generic error handler.
+//
+// Expected multipart field name: "slip"
+// ---------------------------------------------------------------------------
 const handleSlipUpload = (req, res, next) => {
   paymentSlipUpload.single('slip')(req, res, (err) => {
     if (err) {
@@ -27,7 +36,8 @@ const handleSlipUpload = (req, res, next) => {
   });
 };
 
-// Keep static routes above '/:id' to avoid route conflicts.
+// Keep static routes above '/:id' to avoid route conflicts with Express.
+// Each route applies auth/role guards at the router level.
 router.post('/upload-slip', protect, authorizeRoles('guest'), handleSlipUpload, uploadSlip);
 router.post('/', protect, authorizeRoles('guest'), createPayment);
 router.get('/', protect, authorizeRoles('admin'), getAllPayments);
